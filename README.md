@@ -265,7 +265,7 @@ docker run --env ACCOUNT=0x$(cat ~/.ethereum/rinkeby) annexfinance/annex-protoco
 Discussion
 ----------
 
-For any concerns with the protocol, open an issue or visit us on [Telegram](https://t.me/annexprotocol) to discuss.
+For any concerns with the protocol, open an issue or visit us on [Telegram](https://t.me/Annex_finance_group) to discuss.
 
 For security concerns, please email [security@annex.finance](mailto:security@annex.finance).
 
