@@ -3,7 +3,7 @@
 Annex Protocol
 =================
 
-The Annex Protocol is an Binance Smart Chain smart contract for supplying or borrowing assets. Through the aToken contracts, accounts on the blockchain *supply* capital (BNB or BEP-20 tokens) to receive aTokens or *borrow* assets from the protocol (holding other assets as collateral). The protocol will also enable the minting of XAI, which is the first synthetic stablecoin on Annex that aims to be pegged to 1 USD. XAI is minted by the same collateral that is supplied to the protocol. The Annex aToken contracts track these balances and algorithmically set interest rates for borrowers.
+The Annex Protocol is an Binance Smart Chain smart contract for supplying or borrowing assets. Through the aToken contracts, accounts on the blockchain *supply* capital (BNB or BEP-20 tokens) to receive aTokens or *borrow* assets from the protocol (holding other assets as collateral). The Annex aToken contracts track these balances and algorithmically set interest rates for borrowers.
 
 Before getting started with this repo, please read:
 
