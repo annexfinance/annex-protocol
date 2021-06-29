@@ -1,0 +1,16 @@
+-- Next a comptroller
+Unitroller Deploy
+PriceOracle Deploy Simple
+ComptrollerImpl Deploy Standard MyStandard
+Unitroller SetPendingImpl MyStandard
+ComptrollerImpl MyStandard Become
+Comptroller SetPriceOracle (PriceOracle Address)
+Comptroller SetMaxAssets 20
+Comptroller SetCloseFactor 0.5
+Comptroller LiquidationIncentive 1.1
+--Comptroller SetAnnexRate 1e18
+NewAToken ZRX aZRX
+NewAToken BAT aBAT
+Support aZRX collateralFactor:0.5
+Support aBAT collateralFactor:0.5
+Comptroller AddAnnexMarkets (aZRX aBAT)

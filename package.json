@@ -1,0 +1,37 @@
+{
+  "name": "annex-protocol",
+  "version": "0.2.1",
+  "description": "The Annex Money Market",
+  "main": "index.js",
+  "scripts": {
+    "compile": "./script/compile",
+    "console": "if node -v | grep -E \"v(12|13)\" > /dev/null; then flags=\"-n --experimental-repl-await\"; fi; npx $flags saddle console",
+    "coverage": "./script/coverage",
+    "deploy": "./scenario/script/repl -s ./script/scen/deploy.scen",
+    "lint": "./script/lint",
+    "repl": "./scenario/script/repl",
+    "profile": "yarn test tests/gasProfiler.js",
+    "test": "./script/test",
+    "test:prepare": "NO_RUN=true ./script/test",
+    "checksize": "npx run ./script/saddle/comptrollerSize.js"
+  },
+  "repository": "git@github.com:annexfinance/annex-protocol.git",
+  "author": "Annex",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "bignumber.js": "9.0.0",
+    "jest-diff": "^26.4.2",
+    "jest-junit": "^11.1.0",
+    "solium": "^1.2.5",
+    "solparse": "^2.2.8"
+  },
+  "dependencies": {
+    "eth-saddle": "^0.1.21",
+    "truffle-flattener": "^1.5.0"
+  },
+  "resolutions": {
+    "scrypt.js": "https://registry.npmjs.org/@compound-finance/ethereumjs-wallet/-/ethereumjs-wallet-0.6.3.tgz",
+    "**/ganache-core": "github:compound-finance/ganache-core.git#jflatow/unbreak-fork",
+    "solidity-parser-antlr": "https://github.com/solidity-parser/parser#0.7.0"
+  }
+}

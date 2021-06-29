@@ -1,0 +1,295 @@
+-- These are included in each scenario
+
+Macro Successfully
+    Invariant Success
+
+Macro AllowFailures
+    ClearInvariants Success
+
+Macro PricedComptroller closeFactor=0.1 maxAssets=20
+    Unitroller Deploy
+    PriceOracle Deploy Simple
+    ComptrollerImpl Deploy Scenario ScenComptroller
+    Unitroller SetPendingImpl ScenComptroller
+    ComptrollerImpl ScenComptroller Become
+    PriceOracleProxy Deploy Admin (PriceOracle Address) (Address Zero) (Address Zero) (Address Zero) (Address Zero) (Address Zero) -- if listing aBnb use ListedBNBToken to replace proxy
+    Comptroller SetPriceOracle (PriceOracleProxy Address)
+    Comptroller SetCloseFactor closeFactor
+
+Macro PricedComptrollerWithXAIController closeFactor=0.1 maxAssets=20
+    PricedComptroller closeFactor maxAssets
+    NewXAIController
+    Comptroller SetXAIController (Address XAIUnitroller)
+    XAIController SetComptroller (Address Unitroller)
+    Comptroller SetXAIMintRate 5e3
+    NewXAI
+
+Macro NewComptroller price=1.0 closeFactor=0.1 maxAssets=20
+    Unitroller Deploy
+    PriceOracle Deploy Fixed price
+    --g1
+    ComptrollerImpl Deploy ScenarioG1 ComptrollerG1
+    Unitroller SetPendingImpl ComptrollerG1
+    ComptrollerImpl ComptrollerG1 BecomeG1
+    --g2
+    ComptrollerImpl Deploy ScenarioG2 ComptrollerG2
+    Unitroller SetPendingImpl ComptrollerG2
+    ComptrollerImpl ComptrollerG2 BecomeG2
+    --current
+    ComptrollerImpl Deploy Scenario ScenComptroller
+    Unitroller SetPendingImpl ScenComptroller
+    ComptrollerImpl ScenComptroller Become
+    PriceOracleProxy Deploy Admin (PriceOracle Address) (Address Zero) (Address Zero) (Address Zero) (Address Zero) (Address Zero) -- if listing aBnb use ListedBNBToken to replace proxy
+    Comptroller SetPriceOracle (PriceOracleProxy Address)
+    Comptroller SetCloseFactor closeFactor
+
+Macro NewFeeComptroller price=1.0 closeFactor=0.1 maxAssets=20
+    Unitroller Deploy
+    PriceOracle Deploy Fixed price
+    ComptrollerImpl Deploy Scenario ScenComptroller
+    Unitroller SetPendingImpl ScenComptroller
+    ComptrollerImpl ScenComptroller Become
+    PriceOracleProxy Deploy Admin (PriceOracle Address) (Address Zero) (Address Zero) (Address Zero) (Address Zero) (Address Zero) -- if listing aBnb use ListedBNBToken to replace proxy
+    Comptroller SetPriceOracle (PriceOracleProxy Address)
+    Comptroller SetCloseFactor closeFactor
+    Comptroller SetTreasuryData Guardian Jared 1e14
+
+Macro NewComptrollerWithXAIController price=1.0 closeFactor=0.1 maxAssets=20
+    NewComptroller price closeFactor maxAssets
+    NewXAIController
+    Comptroller SetXAIController (Address XAIUnitroller)
+    XAIController SetComptroller (Address Unitroller)
+    Comptroller SetXAIMintRate 5e3
+
+Macro NewXAIController
+    XAIUnitroller Deploy
+    --current
+    XAIControllerImpl Deploy Scenario ScenXAIController
+    XAIUnitroller SetPendingImpl ScenXAIController
+    XAIControllerImpl ScenXAIController Become
+    XAIController Initialize
+
+Macro NewXAI
+    XAI Deploy Admin
+    XAI Rely (Address XAIUnitroller)
+    XAIController Send "setXAIAddress(address)" (Address XAI)
+
+Macro NewAToken bep20 aToken borrowRate=0.000005 initialExchangeRate=2e9 decimals=8 tokenType=Standard delegatorType=ABep20DelegatorScenario aTokenType=ABep20DelegateScenario admin=Admin becomeImplementationData="0x0"
+    Bep20 Deploy tokenType bep20 bep20
+    InterestRateModel Deploy Fixed StdInterest borrowRate -- Note: interest rate model probably shouldn't be global
+    ATokenDelegate Deploy aTokenType aBep20Delegate
+    AToken Deploy delegatorType aToken aToken (Bep20 bep20 Address) (Comptroller Address) (InterestRateModel StdInterest Address) initialExchangeRate decimals admin (ATokenDelegate aBep20Delegate Address) becomeImplementationData
+
+-- Same as NewAToken but does not deploy an BEP20. Used for special BEP20s that are initialized differently
+Macro NewATokenBringBEP20 bep20 aToken borrowRate=0.000005 initialExchangeRate=2e9 decimals=8 delegatorType=ABep20DelegatorScenario aTokenType=ABep20DelegateScenario admin=Admin becomeImplementationData="0x0"
+    InterestRateModel Deploy Fixed StdInterest borrowRate -- Note: interest rate model probably shouldn't be global
+    ATokenDelegate Deploy aTokenType aBep20Delegate
+    AToken Deploy delegatorType aToken aToken (Bep20 bep20 Address) (Comptroller Address) (InterestRateModel StdInterest Address) initialExchangeRate decimals admin (ATokenDelegate aBep20Delegate Address) becomeImplementationData
+
+Macro NewATokenImmutable bep20 aToken borrowRate=0.000005 initialExchangeRate=2e9 decimals=8 tokenType=Standard aTokenType=Scenario admin=Admin
+    Bep20 Deploy tokenType bep20 bep20
+    InterestRateModel Deploy Fixed StdInterest borrowRate -- Note: interest rate model probably shouldn't be global
+    AToken Deploy aTokenType aToken aToken (Bep20 bep20 Address) (Comptroller Address) (InterestRateModel StdInterest Address) initialExchangeRate decimals admin
+
+Macro NewBNBToken aToken borrowRate=0.000005 initialExchangeRate=2e9 decimals=8 admin=Admin
+    InterestRateModel Deploy Fixed StdInterest borrowRate -- Note: interest rate model probably shouldn't be global
+    AToken Deploy ABNBScenario aToken aToken (Comptroller Address) (InterestRateModel StdInterest Address) initialExchangeRate decimals admin
+
+Macro ListedAToken bep20 aToken borrowRate=0.000005 initialExchangeRate=2e9 decimals=8 tokenType=Standard delegatorType=ABep20DelegatorScenario aTokenType=ABep20DelegateScenario admin=Admin
+    NewAToken bep20 aToken borrowRate initialExchangeRate decimals tokenType delegatorType aTokenType admin
+    Comptroller SupportMarket aToken
+
+Macro ListedATokenImmutable bep20 aToken borrowRate=0.000005 initialExchangeRate=2e9 decimals=8 tokenType=Standard aTokenType=Scenario admin=Admin
+    NewATokenImmutable bep20 aToken borrowRate initialExchangeRate decimals tokenType aTokenType admin
+    Comptroller SupportMarket aToken
+
+Macro ListedBNBToken aToken borrowRate=0.000005 initialExchangeRate=2e9 decimals=8 admin=Admin
+    NewBNBToken aToken borrowRate initialExchangeRate decimals admin
+    Comptroller SupportMarket aToken
+    PriceOracleProxy Deploy Admin (PriceOracle Address) (Address aBNB) (Address Zero) (Address Zero) (Address Zero) (Address Zero)
+    Comptroller SetPriceOracle (PriceOracleProxy Address)
+
+Macro ListedBNBTokenMinted aToken borrowRate=0.000005 initialExchangeRate=2e9 decimals=8 admin=Admin
+    NewBNBToken aToken borrowRate initialExchangeRate decimals admin
+    Comptroller SupportMarket aToken
+    CallMintBnb Root 1e18 aToken
+
+Macro SetPriceCF aToken price collateralFactor
+    PriceOracle SetPrice aToken price
+    Comptroller SetCollateralFactor aToken collateralFactor
+
+Macro Give user amount bep20
+    Bep20 bep20 Faucet user amount
+
+Macro GiveXAI user amount
+    XAI Faucet user amount
+
+Macro PrepXAI user amount token allowanceAmount=Nothing
+    GiveXAI user amount
+    From user (XAI Approve token (Default allowanceAmount amount))
+
+Macro Donate token amount
+    (Trx Value amount (AToken token Donate))
+
+Macro Prep user amount bep20 token allowanceAmount=Nothing
+    Bep20 bep20 Faucet user amount
+    From user (Bep20 bep20 Approve token (Default allowanceAmount amount))
+
+Macro Allow user token
+    From user (Bep20 (AToken token Underlying) Approve token UInt256Max)
+
+Macro AccrueInterest token
+    AToken token AccrueInterest
+
+Macro Mint user amount token
+    From user (AToken token Mint amount)
+
+Macro SendMintBnb user amount token
+    From user (Trx GasPrice 0 (Trx Value amount (Send token amount)))
+
+Macro CallMintBnb user amount token
+    From user (Trx GasPrice 0 (Trx Value amount (AToken token Mint)))
+
+Macro Redeem user amount token
+    From user (AToken token Redeem amount)
+
+Macro RedeemBnb user amount token
+    Trx GasPrice 0 (From user (AToken token Redeem amount))
+
+Macro RedeemUnderlying user amount token
+    From user (AToken token RedeemUnderlying amount)
+
+Macro RedeemUnderlyingBnb user amount token
+    Trx GasPrice 0 (From user (AToken token RedeemUnderlying amount))
+
+Macro BorrowBnb user amount token
+    Trx GasPrice 0 (From user (AToken token Borrow amount))
+
+Macro Borrow user amount token
+    From user (AToken token Borrow amount)
+
+Macro RepayBorrow user amount token
+    From user (AToken token RepayBorrow amount)
+
+Macro MintXAI user amount
+    From user (XAIController Mint amount)
+
+Macro RepayXAI user amount
+    From user (XAIController Repay amount)
+
+Macro RepayBorrowBnb user amount token
+    From user (Trx GasPrice 0 (Trx Value amount (AToken token RepayBorrow)))
+
+Macro RepayBorrowBnbMax user amount token
+    From user (Trx GasPrice 0 (Trx Value amount (Maximillion RepayBehalf user)))
+
+Macro RepayBorrowBehalf user behalf amount token
+    From user (AToken token RepayBorrowBehalf behalf amount)
+
+Macro RepayBorrowBnbBehalf user behalf amount token
+    From user (Trx GasPrice 0 (Trx Value amount (AToken token RepayBorrowBehalf behalf)))
+
+Macro Liquidate liquidator _ borrower amount token _ collateral
+    From liquidator (AToken token Liquidate borrower collateral amount)
+
+Macro LiquidateXAI liquidator _ borrower amount _ collateral
+    From liquidator (XAIController LiquidateXAI borrower collateral amount)
+
+Macro LiquidateBnbColl liquidator _ borrower amount token _ collateral
+    From liquidator (Trx GasPrice 0 (AToken token Liquidate borrower collateral amount))
+
+Macro LiquidateBnbBorrow liquidator _ borrower amount token _ collateral
+    From liquidator (Trx GasPrice 0 (Trx Value amount (AToken token Liquidate borrower collateral)))
+
+Macro Seize amount token caller liquidator borrower
+    From caller (AToken token Seize liquidator borrower amount)
+
+Macro EvilSeize token amount treasure seizer seizee
+    AToken token EvilSeize treasure seizer seizee amount
+
+Macro Support aToken collateralFactor=0.5
+    Comptroller SupportMarket aToken
+    Comptroller SetCollateralFactor aToken collateralFactor
+
+Macro SetCollateralFactor aToken collateralFactor=0.5
+    Comptroller SetCollateralFactor aToken collateralFactor
+
+Macro AddReserves amount token user=Root
+    From user (AToken token AddReserves amount)
+
+Macro ReduceReserves amount token
+    AToken token ReduceReserves amount
+
+Macro FastForward n blocks
+    Comptroller FastForward n blocks
+
+Macro EnterMarkets user ...markets
+    From user (Comptroller EnterMarkets markets)
+
+Macro ExitMarket user market
+    From user (Comptroller ExitMarket market)
+
+Macro Transfer from to amount token
+    From from (Bep20 token Transfer to amount)
+
+Macro Cash aToken
+    Read Bep20 (AToken aToken Underlying) TokenBalance aToken
+
+Macro QuickMint amount aToken from=Me
+    Give from amount (AToken aToken Underlying)
+    Allow from aToken
+    From from (AToken aToken Mint amount)
+
+Macro QuickBorrow amount aToken ...collateral
+    From Me (Comptroller EnterMarkets collateral)
+    From Me (Comptroller EnterMarkets (aToken))
+    From Me (AToken aToken Borrow amount)
+
+-- Macro for performing a borrow with the sole
+-- purpose of adding interest to the bep20 market
+Macro BorrowAndRepayWithInterest bep20 aToken amount interestAmount interestRate blocks reserveRate=0
+    -- TODO: Make invariant success for these?
+    -- TODO: Named args as macros
+    InterestRateModel Deploy Fixed Std interestRate
+    AToken aToken SetInterestRateModel (InterestRateModel Std Address)
+    AToken aToken SetReserveFactor reserveRate
+    ListedAToken COLLAT cCOLLAT
+    Comptroller SetCollateralFactor cCOLLAT 0.9
+    Prep Torrey 1e30 COLLAT cCOLLAT
+    Mint Torrey 1e30 cCOLLAT
+    EnterMarkets Torrey cCOLLAT aToken
+    Assert True (Comptroller CheckMembership Torrey cCOLLAT)
+    Assert True (Comptroller CheckMembership Torrey aToken)
+    Borrow Torrey amount aToken
+    -- Cool, we've borrowed, now let's accrue interest then repay all
+    FastForward blocks Blocks
+    -- RepayBorrow Torrey (AToken BorrowBalance Torrey) aToken
+    From Torrey (Bep20 bep20 Approve aToken amount)
+    RepayBorrow Torrey amount aToken
+    From Torrey (Bep20 bep20 Approve aToken interestAmount)
+    Give Torrey interestAmount bep20
+    RepayBorrow Torrey interestAmount aToken
+    Assert Equal (AToken aToken BorrowBalance Torrey) Zero
+
+-- Macro for performing a borrow with the sole
+-- purpose of adding interest to the bnb market
+Macro BorrowAndRepayBnbWithInterest aBnb amount interestAmount interestRate blocks reserveRate=0
+    -- TODO: Make invariant success for these?
+    -- TODO: Named args as macros
+    InterestRateModel Deploy Fixed Std interestRate
+    AToken aBnb SetInterestRateModel (InterestRateModel Std Address)
+    AToken aBnb SetReserveFactor reserveRate
+    ListedAToken COLLAT cCOLLAT
+    Comptroller SetCollateralFactor cCOLLAT 0.9
+    Prep Torrey 1e30 COLLAT cCOLLAT
+    Mint Torrey 1e30 cCOLLAT
+    EnterMarkets Torrey cCOLLAT aBnb
+    Assert True (Comptroller CheckMembership Torrey cCOLLAT)
+    Assert True (Comptroller CheckMembership Torrey aBnb)
+    Borrow Torrey amount aBnb
+    -- Cool, we've borrowed, now let's accrue interest then repay all
+    FastForward blocks Blocks
+    -- RepayBorrow Torrey (AToken BorrowBalance Torrey) aBnb
+    RepayBorrowBnb Torrey amount aBnb
+    RepayBorrowBnb Torrey interestAmount aBnb
+    Assert Equal (AToken aBnb BorrowBalance Torrey) Zero

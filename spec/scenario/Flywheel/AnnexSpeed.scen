@@ -1,0 +1,93 @@
+-- Tests for the grants and math patch
+
+Macro FlywheelComptroller price=1.0 borrowRate=0.000005 annexInitAmount=5000000e18
+    Unitroller Deploy
+    PriceOracle Deploy Fixed price
+    PriceOracleProxy Deploy Admin (PriceOracle Address) (Address Zero) (Address Zero) (Address Zero) (Address Zero) (Address Zero)
+    ----g1
+    ComptrollerImpl Deploy ScenarioG1 ComptrollerScenG1
+    Unitroller SetPendingImpl ComptrollerScenG1
+    ComptrollerImpl ComptrollerScenG1 BecomeG1
+    --list some tokens
+    Comptroller SetPriceOracle (PriceOracleProxy Address)
+    Comptroller SetMaxAssets 20
+    Comptroller SetCloseFactor 0.5
+    Comptroller LiquidationIncentive 1.1
+    Comptroller SetAnnexRate 1e18
+    NewAToken ZRX aZRX
+    NewAToken BAT aBAT
+    Support aZRX collateralFactor:0.5
+    Support aBAT collateralFactor:0.5
+    Comptroller AddAnnexMarkets (aZRX aBAT)
+    Bep20 Deploy Standard ANN "ANN Token" 18
+    Give (Address Comptroller) annexInitAmount ANN
+    Comptroller Send "setANNAddress(address)" (Address ANN)
+    Bep20 Deploy Standard XAI "XAI Token" 18
+    Give (Address Comptroller) annexInitAmount XAI
+    Comptroller Send "setXAIAddress(address)" (Address XAI)
+
+Macro GrantsComptroller
+    FlywheelComptroller
+    -- g2
+    ComptrollerImpl Deploy ScenarioG2 ComptrollerScen
+    Unitroller SetPendingImpl ComptrollerScen
+    ComptrollerImpl ComptrollerScen BecomeG2
+    -- current
+    ComptrollerImpl Deploy Scenario ComptrollerScen
+    Unitroller SetPendingImpl ComptrollerScen
+    ComptrollerImpl ComptrollerScen Become
+
+Macro InitSpeeds
+    Prep Geoff 100e18 ZRX aZRX
+    Mint Geoff 50e18 aZRX--tokenbalance = 50e18 / 2e9 = 2.5e10
+    Prep Coburn Some BAT aBAT
+    Mint Coburn 6e18 aBAT--tokenbalance = 6e18 / 2e9 = 3e9
+    EnterMarkets Coburn aBAT
+    Borrow Coburn 1e18 aZRX
+    Comptroller SetAnnexSpeed aZRX 1
+    Comptroller SetAnnexSpeed aBAT 1
+    Comptroller RefreshAnnexSpeeds
+    Comptroller Send "setANNAddress(address)" (Address ANN)
+
+Test "ANN speed can be set per market"
+    GrantsComptroller
+    InitSpeeds
+    -- Baseline ann amounts
+    Assert Equal (Comptroller AnnexAccrued Geoff) 0
+    Assert Equal (Bep20 ANN TokenBalance Geoff) 0
+    -- Annex speed can be set
+    Comptroller SetAnnexSpeed aZRX 2
+    FastForward 1000 Blocks
+    Comptroller ClaimAnnex Geoff
+    Assert Equal (Comptroller AnnexAccrued Geoff) 0
+    Assert Equal (Bep20 ANN TokenBalance Geoff) 2000
+    -- Annex speed can be changed
+    Comptroller SetAnnexSpeed aZRX 4
+    FastForward 1000 Blocks
+    Comptroller ClaimAnnex Geoff
+    Assert Equal (Comptroller AnnexAccrued Geoff) 0
+    Assert Equal (Bep20 ANN TokenBalance Geoff) 6000
+    -- Annex speed can be removed
+    Comptroller SetAnnexSpeed aZRX 0
+    FastForward 1000 Blocks
+    Comptroller ClaimAnnex Geoff
+    Assert Equal (Comptroller AnnexAccrued Geoff) 0
+    Assert Equal (Bep20 ANN TokenBalance Geoff) 6000
+
+Test "Set ann rate is removed"
+    GrantsComptroller
+    InitSpeeds
+    AllowFailures
+    Comptroller SetAnnexRate 5
+
+Test "ANN is not claimed automatically"
+    GrantsComptroller
+    InitSpeeds
+    Comptroller SetAnnexSpeed aZRX 2
+    FastForward 100000 Blocks
+    -- Check ann is not claimed automatically
+    Mint Geoff 50e18 aZRX
+    Assert Equal (Bep20 ANN TokenBalance Geoff) 0
+    -- Confirm there was ann to claim
+    Comptroller ClaimAnnex Geoff
+    Assert Equal (Bep20 ANN TokenBalance Geoff) 200000

@@ -1,0 +1,57 @@
+#!/usr/bin/env yarn run repl -s
+-- Deploys basic Comptroller
+
+Unitroller Deploy
+PriceOracle Deploy Fixed 1.0
+PriceOracleProxy Deploy Admin (PriceOracle Address) (Address Zero) (Address Zero) (Address Zero) (Address Zero) (Address Zero)
+ComptrollerImpl Deploy Scenario ComptrollerScen
+Unitroller SetPendingImpl ComptrollerScen
+ComptrollerImpl ComptrollerScen Become
+Comptroller SetPriceOracle (PriceOracleProxy Address)
+Comptroller SetCloseFactor 0.5
+Comptroller LiquidationIncentive 1.1
+Comptroller SetAnnexRate 1e18
+NewAToken ZRX aZRX
+NewAToken BAT aBAT
+Support aZRX collateralFactor:0.5
+Support aBAT collateralFactor:0.5
+
+Prep Geoff 100e18 ZRX aZRX
+Mint Geoff 50e18 aZRX--tokenbalance = 50e18 / 2e9 = 2.5e10
+
+Prep Fourth Some BAT aBAT
+Mint Fourth 6e18 aBAT
+EnterMarkets Fourth aBAT
+Borrow Fourth 1e18 aZRX
+
+Prep Fifth Some BAT aBAT
+Mint Fifth 6e18 aBAT
+EnterMarkets Fifth aBAT
+Borrow Fifth 1e18 aZRX
+
+Prep Sixth Some BAT aBAT
+Mint Sixth 6e18 aBAT
+EnterMarkets Sixth aBAT
+Borrow Sixth 1e18 aZRX
+
+Prep Seventh Some BAT aBAT
+Mint Seventh 6e18 aBAT
+EnterMarkets Seventh aBAT
+Borrow Seventh 1e18 aZRX
+
+Comptroller AddAnnexMarkets (aZRX aBAT)
+Bep20 Deploy Standard ANN "ANN Token" 18
+Give (Address Comptroller) 5000000e18 ANN
+Comptroller Send "setANNAddress(address)" (Address ANN)
+Bep20 Deploy Standard XAI "XAI Token" 18
+Give (Address Comptroller) 5000000e18 XAI
+Comptroller Send "setXAIAddress(address)" (Address XAI)
+
+Comptroller RefreshAnnexSpeeds
+
+FastForward 300000 Blocks
+Read (Comptroller Address)
+Read (Address Fourth)
+Read (Address Fifth)
+Read (Address Sixth)
+Read (Address Seventh)
