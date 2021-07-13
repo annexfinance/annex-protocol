@@ -27,6 +27,9 @@
   },
   "dependencies": {
     "eth-saddle": "^0.1.21",
+    "ganache-core": "github:compound-finance/ganache-core.git#jflatow/unbreak-fork",
+    "scrypt.js": "https://registry.npmjs.org/@compound-finance/ethereumjs-wallet/-/ethereumjs-wallet-0.6.3.tgz",
+    "solidity-parser-antlr": "https://github.com/solidity-parser/parser#0.7.0",
     "truffle-flattener": "^1.5.0"
   },
   "resolutions": {
