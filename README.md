@@ -3,7 +3,7 @@
 Annex Protocol
 =================
 
-The Annex Protocol is an Binance Smart Chain smart contract for supplying or borrowing assets. Through the aToken contracts, accounts on the blockchain *supply* capital (BNB or BEP-20 tokens) to receive aTokens or *borrow* assets from the protocol (holding other assets as collateral). The protocol will also enable the minting of XAI, which is the first synthetic stablecoin on Annex that aims to be pegged to 1 USD. XAI is minted by the same collateral that is supplied to the protocol. The Annex aToken contracts track these balances and algorithmically set interest rates for borrowers.
+The Annex Protocol is an Binance Smart Chain smart contract for supplying or borrowing assets. Through the aToken contracts, accounts on the blockchain *supply* capital (BNB or BEP-20 tokens) to receive aTokens or *borrow* assets from the protocol (holding other assets as collateral). The Annex aToken contracts track these balances and algorithmically set interest rates for borrowers.
 
 Before getting started with this repo, please read:
 
@@ -158,7 +158,7 @@ After you deploy, as above, you can run a truffle console with the following com
 
     yarn console -n goerli
 
-This command will start a saddle console conencted to Goerli testnet (see [Saddle README](https://github.com/annexfinance/saddle#cli)):
+This command will start a saddle console connected to Goerli testnet (see [Saddle README](https://github.com/annexfinance/saddle#cli)):
 
 ```javascript
     Using network goerli https://goerli.infura.io/v3/e1a5d4d2c06a4e81945fca56d0d5d8ea
@@ -265,7 +265,7 @@ docker run --env ACCOUNT=0x$(cat ~/.ethereum/rinkeby) annexfinance/annex-protoco
 Discussion
 ----------
 
-For any concerns with the protocol, open an issue or visit us on [Telegram](https://t.me/annexprotocol) to discuss.
+For any concerns with the protocol, open an issue or visit us on [Telegram](https://t.me/Annex_finance_group) to discuss.
 
 For security concerns, please email [security@annex.finance](mailto:security@annex.finance).
 
