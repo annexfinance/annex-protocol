@@ -1280,6 +1280,7 @@ contract ComptrollerG3 is ComptrollerV3Storage, ComptrollerInterfaceG1, Comptrol
      * @param xaiMinter The address of the XAI minter to distribute ANN to
      */
     function distributeXAIMinterAnnex(address xaiMinter, bool distributeAll) public {
+        distributeAll;
         if (address(xaiVaultAddress) != address(0)) {
             releaseToVault();
         }

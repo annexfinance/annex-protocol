@@ -501,7 +501,7 @@ contract ANN is Ownable {
             uint32 iReward = 0;
             uint256 reward = 0;
             for (uint32 iTP = 0; iTP <= nTransferPoint; iTP++) {
-                (uint32 tpEpoch, uint96 tpBalance) = getTransferPoint(account, iTP);
+                (uint32 tpEpoch,) = getTransferPoint(account, iTP);
                 (uint32 iEC,,,uint32 roi) = getEpochConfig(tpEpoch);
                 uint32 startEpoch = tpEpoch;
                 for (; iEC < epochConfigs.length; iEC++) {

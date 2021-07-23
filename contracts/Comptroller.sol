@@ -126,7 +126,7 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
 
     modifier validPauseState(bool state) {
         require(msg.sender == pauseGuardian || msg.sender == admin, "only pause guardian and admin can");
-        require(msg.sender == admin || state == true, "only admin can unpause");
+        require(msg.sender == admin || state, "only admin can unpause");
         _;
     }
 
@@ -979,6 +979,7 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
       * @return uint 0=success, otherwise a failure. (See enum Error for details)
       */
     function _supportMarket(AToken aToken) external returns (uint) {
+        
         if (msg.sender != admin) {
             return fail(Error.UNAUTHORIZED, FailureInfo.SUPPORT_MARKET_OWNER_CHECK);
         }
@@ -988,7 +989,8 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
         }
 
         aToken.isAToken(); // Sanity check to make sure its really a AToken
-
+        require(aToken.isAToken(),"invalid aToken address");
+        
         // Note that isAnnex is not in active use anymore
         markets[address(aToken)] = Market({isListed: true, isAnnex: false, collateralFactorMantissa: 0});
 
