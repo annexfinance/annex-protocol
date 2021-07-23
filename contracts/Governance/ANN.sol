@@ -141,9 +141,9 @@ contract ANN is Tokenlock {
      */
     constructor(address account) public {
         EpochConfig memory newEpochConfig = EpochConfig(
-            safe32(block.number / (24 * 60 * 60 / 3), "ANN::constructor: epoch exceeds 32 bits"),
+            0,
             24 * 60 * 60 / 3, // 1 day blocks in BSC
-            20 // 0.2% ROI increase
+            20 // 0.2% ROI increase per epoch
         );
         epochConfigs.push(newEpochConfig);
         emit EpochConfigChanged(0, 0, 0, newEpochConfig.epoch, newEpochConfig.blocks, newEpochConfig.roi);
@@ -313,37 +313,33 @@ contract ANN is Tokenlock {
      */
     function setEpochConfig(uint32 blocks, uint32 roi) public onlyOwner {
         require(blocks > 0, "ANN::setEpochConfig: zero blocks");
-        (uint32 prevEpoch, uint32 prevBlocks, uint32 prevROI) = getCurrentEpochConfig();
-        EpochConfig memory newEpochConfig = EpochConfig(getEpochs(block.number), blocks, roi);
-        require(prevBlocks != newEpochConfig.blocks || prevROI != newEpochConfig.roi, "ANN::setEpochConfig: blocks and roi same as before");
-        if (prevEpoch == newEpochConfig.epoch && epochConfigs.length > 0) {
-            epochConfigs[epochConfigs.length - 1] = newEpochConfig;
+        require(roi < 10000, "ANN::setEpochConfig: roi exceeds max fraction");
+        EpochConfig memory prevEC = epochConfigs[epochConfigs.length - 1];
+        EpochConfig memory newEC = EpochConfig(getEpochs(block.number), blocks, roi);
+        require(prevEC.blocks != newEC.blocks || prevEC.roi != newEC.roi, "ANN::setEpochConfig: blocks and roi same as before");
+        //if (prevEC.epoch == newEC.epoch && epochConfigs.length > 1) {
+        if (prevEC.epoch == newEC.epoch) {
+            epochConfigs[epochConfigs.length - 1] = newEC;
         } else {
-            epochConfigs.push(newEpochConfig);
+            epochConfigs.push(newEC);
         }
-        emit EpochConfigChanged(prevEpoch, prevBlocks, prevROI, newEpochConfig.epoch, newEpochConfig.blocks, newEpochConfig.roi);
+        emit EpochConfigChanged(prevEC.epoch, prevEC.blocks, prevEC.roi, newEC.epoch, newEC.blocks, newEC.roi);
     }
 
     /**
      * @notice Gets block counter per epoch
      * @return The count of blocks for current epoch
      */
-    function getCurrentEpochBlocks() public view returns (uint32) {
-        if (epochConfigs.length == 0) {
-            return 0;
-        }
-        return epochConfigs[epochConfigs.length - 1].blocks;
+    function getCurrentEpochBlocks() public view returns (uint32 blocks) {
+        blocks = epochConfigs[epochConfigs.length - 1].blocks;
     }
 
     /**
      * @notice Gets rate of interest for current epoch
      * @return The rate of interest for current epoch
      */
-    function getCurrentEpochROI() public view returns (uint32) {
-        if (epochConfigs.length == 0) {
-            return 0;
-        }
-        return epochConfigs[epochConfigs.length - 1].roi;
+    function getCurrentEpochROI() public view returns (uint32 roi) {
+        roi = epochConfigs[epochConfigs.length - 1].roi;
     }   
 
     /**
@@ -351,29 +347,26 @@ contract ANN is Tokenlock {
      * @return The EpochConfig for current epoch
      */
     function getCurrentEpochConfig() public view returns (uint32 epoch, uint32 blocks, uint32 roi) {
-        if (epochConfigs.length > 0) {
-            EpochConfig memory epochConfig = epochConfigs[epochConfigs.length - 1];
-            epoch = epochConfig.epoch;
-            blocks = epochConfig.blocks;
-            roi = epochConfig.roi;
-        }
+        EpochConfig memory ec = epochConfigs[epochConfigs.length - 1];
+        epoch = ec.epoch;
+        blocks = ec.blocks;
+        roi = ec.roi;
     }
 
     /**
      * @notice Gets epoch config at given epoch index
-     * @param epochIndex The index of epoch
-     * @return (epoch epoch at given epoch,
-                blocks the count of blocks at given epoch,
-     *          roi rate of interest at given epoch)
+     * @param forEpoch epoch
+     * @return (index of config,
+                config at epoch)
      */
-    function getEpochConfig(uint32 epochIndex) public view returns (uint32 epoch, uint32 blocks, uint32 roi) {
-        uint32 i = uint32(epochConfigs.length - 1);
-        for (; i > 0 && epochIndex < epochConfigs[i].epoch; i--) {
+    function getEpochConfig(uint32 forEpoch) public view returns (uint32 index, uint32 epoch, uint32 blocks, uint32 roi) {
+        index = uint32(epochConfigs.length - 1);
+        for (; index > 0 && forEpoch < epochConfigs[index].epoch; index--) {
         }
-        EpochConfig memory epochConfig = epochConfigs[i];
-        epoch = epochConfig.epoch;
-        blocks = epochConfig.blocks;
-        roi = epochConfig.roi;
+        EpochConfig memory ec = epochConfigs[index];
+        epoch = ec.epoch;
+        blocks = ec.blocks;
+        roi = ec.roi;
     }
 
     /**
@@ -381,22 +374,99 @@ contract ANN is Tokenlock {
      * @return epoch index
      */
     function getEpochs(uint blockNumber) public view returns (uint32) {
+        uint96 blocks = 0;
         uint96 epoch = 0;
-        uint96 deltaBlocks = 0;
-        uint32 i = 0;
-        for (; (i + 1) < epochConfigs.length; i++) {
-            deltaBlocks = (uint96(epochConfigs[i].epoch) - epoch) * epochConfigs[i].blocks;
+        for (uint32 i = 0; i < epochConfigs.length; i++) {
+            uint96 deltaBlocks = (uint96(epochConfigs[i].epoch) - epoch) * blocks;
             if (blockNumber < deltaBlocks) {
                 break;
             }
             blockNumber = blockNumber - deltaBlocks;
             epoch = epochConfigs[i].epoch;
+            blocks = epochConfigs[i].blocks;
         }
-        epoch = epoch + uint96(blockNumber / epochConfigs[i].blocks);
+        
+        if (blocks == 0) {
+            blocks = getCurrentEpochBlocks();
+        }
+        epoch = epoch + uint96(blockNumber / blocks);
+
         if (epoch >= 2**32) {
-            deltaBlocks = 2**32 - 1;
+            epoch = 2**32 - 1;
         }
         return uint32(epoch);
+    }
+
+    function getTransferPoint(address account, uint32 index) public view returns (uint32 epoch, uint96 balance) {
+        epoch = transferPoints[account][index].epoch;
+        balance = transferPoints[account][index].balance;
+    }
+
+    function getHoldingReward1(address account) public view returns (uint256) {
+        // Check if account is holding more than eligible delay
+        uint32 nTransferPoint = numTransferPoints[account];
+
+        uint32 lastEpoch = getEpochs(block.number);
+
+        lastEpoch = lastEpoch - 1;
+        {
+            uint32 lastEligibleEpoch = lastEpoch - eligibleEpochs;
+
+            if (transferPoints[account][nTransferPoint - 1].epoch > lastEligibleEpoch) {
+                uint32 upper = nTransferPoint - 1;
+                nTransferPoint = 0;
+                while (upper > nTransferPoint) {
+                    uint32 center = upper - (upper - nTransferPoint) / 2; // ceil, avoiding overflow
+                    TransferPoint memory tp = transferPoints[account][center];
+                    if (tp.epoch == lastEligibleEpoch) {
+                        nTransferPoint = center;
+                        break;
+                    } if (tp.epoch < lastEligibleEpoch) {
+                        nTransferPoint = center;
+                    } else {
+                        upper = center - 1;
+                    }
+                }
+            } else {
+                nTransferPoint = nTransferPoint - 1;
+            }
+        }
+
+        // Calculate total rewards amount
+        {
+            uint32 iReward = 0;
+            uint256 reward = 0;
+            for (uint32 iTP = 0; iTP <= nTransferPoint; iTP++) {
+                (uint32 tpEpoch, uint96 tpBalance) = getTransferPoint(account, iTP);
+                (uint32 iEC,,,uint32 roi) = getEpochConfig(tpEpoch);
+                uint32 startEpoch = tpEpoch;
+                for (; iEC < epochConfigs.length; iEC++) {
+                    uint32 epoch = lastEpoch;
+                    bool tookNextTP = false;
+                    if (iEC < (epochConfigs.length - 1) && epoch > epochConfigs[iEC + 1].epoch) {
+                        epoch = epochConfigs[iEC + 1].epoch;
+                    }
+                    (uint32 nexTPEpoch,) = getTransferPoint(account, iTP + 1);
+                    if (iTP < nTransferPoint && epoch > nexTPEpoch) {
+                        epoch = nexTPEpoch;
+                        tookNextTP = true;
+                    }
+                    if (iReward++ == 1) {
+                        //reward = (uint256(tpBalance) * roi * sub32(epoch, startEpoch, "ANN::getHoldingReward: invalid epochs"));
+                        reward = nTransferPoint;
+                    }
+                    if (tookNextTP) {
+                        break;
+                    }
+                    startEpoch = epoch;
+                    if (iEC < (epochConfigs.length - 1)) {
+                        roi = epochConfigs[iEC + 1].roi;
+                    }
+                }
+            }
+
+            return reward;
+        }
     }
 
     /**
@@ -404,7 +474,14 @@ contract ANN is Tokenlock {
      * @param account The address to get holding reward amount
      * @return The number of current holding reward for `account`
      */
-    function getHoldingReward(address account) public view returns (uint96) {        
+    function getHoldingReward(address account) public view returns (uint96) {
+        // Check if account is holding more than eligible delay
+        uint32 nTransferPoint = numTransferPoints[account];
+
+        if (nTransferPoint == 0) {
+            return 0;
+        }
+
         uint32 lastEpoch = getEpochs(block.number);
         if (lastEpoch == 0) {
             return 0;
@@ -413,57 +490,110 @@ contract ANN is Tokenlock {
         lastEpoch = lastEpoch - 1;
         if (lastEpoch < eligibleEpochs) {
             return 0;
-        }
+        } else {
+            uint32 lastEligibleEpoch = lastEpoch - eligibleEpochs;
 
-        uint32 lastEligibleEpoch = lastEpoch - eligibleEpochs;
-
-        // Check if account is holding more than eligible delay
-        uint32 nTransferPoint = numTransferPoints[account];
-
-        if (nTransferPoint == 0) {
-            return 0;
-        }
-
-        uint32 lower = 0;
-        uint32 upper = nTransferPoint - 1;
-
-        nTransferPoint = 0;
-        while (upper > lower) {
-            uint32 center = upper - (upper - lower) / 2; // ceil, avoiding overflow
-            TransferPoint memory tp = transferPoints[account][center];
-            if (tp.epoch == lastEligibleEpoch) {
-                nTransferPoint = center;
-                break;
-            } if (tp.epoch < lastEligibleEpoch) {
-                lower = center;
+            // Next check implicit zero balance
+            if (transferPoints[account][0].epoch > lastEligibleEpoch) {
+                return 0;
+            }
+            
+            // First check most recent balance
+            if (transferPoints[account][nTransferPoint - 1].epoch <= lastEligibleEpoch) {
+                nTransferPoint = nTransferPoint - 1;
             } else {
-                upper = center - 1;
+                uint32 upper = nTransferPoint - 1;
+                nTransferPoint = 0;
+                while (upper > nTransferPoint) {
+                    uint32 center = upper - (upper - nTransferPoint) / 2; // ceil, avoiding overflow
+                    TransferPoint memory tp = transferPoints[account][center];
+                    if (tp.epoch == lastEligibleEpoch) {
+                        nTransferPoint = center;
+                        break;
+                    } if (tp.epoch < lastEligibleEpoch) {
+                        nTransferPoint = center;
+                    } else {
+                        upper = center - 1;
+                    }
+                }
             }
         }
 
         // Calculate total rewards amount
-        uint96 amount = 0;
-        uint32 epochs;
-        uint96 reward;
-        TransferPoint memory prevTp = transferPoints[account][0];
-        for (uint32 i = 1; i < nTransferPoint; i++) {
-            TransferPoint memory tp = transferPoints[account][i];
-            epochs = sub32(tp.epoch, prevTp.epoch, "ANN::getHoldingReward: invalid epoch");   
-            reward = mul96(prevTp.balance, epochs, "ANN::getHoldingReward: amount exceeds 96 bits");
-            (,,uint32 roi) = getEpochConfig(prevTp.epoch);
-            reward = percent96(reward, roi, "ANN::getHoldingReward: reward exceeds 96 bits");
-            amount = add96(amount, reward, "ANN::getHoldingReward: total amount exceeds 96 bits");
-            prevTp = tp;
+        uint256 reward = 0;
+        for (uint32 iTP = 0; iTP <= nTransferPoint; iTP++) {
+            TransferPoint memory tp = transferPoints[account][iTP];
+            (uint32 iEC,,,uint32 roi) = getEpochConfig(tp.epoch);
+            uint32 startEpoch = tp.epoch;
+            for (; iEC < epochConfigs.length; iEC++) {
+                uint32 epoch = lastEpoch;
+                bool tookNextTP = false;
+                if (iEC < (epochConfigs.length - 1) && epoch > epochConfigs[iEC + 1].epoch) {
+                    epoch = epochConfigs[iEC + 1].epoch;
+                }
+                if (iTP < nTransferPoint && epoch > transferPoints[account][iTP + 1].epoch) {
+                    epoch = transferPoints[account][iTP + 1].epoch;
+                    tookNextTP = true;
+                }
+                reward = reward + (uint256(tp.balance) * roi * sub32(epoch, startEpoch, "ANN::getHoldingReward: invalid epochs"));
+                if (tookNextTP) {
+                    break;
+                }
+                startEpoch = epoch;
+                if (iEC < (epochConfigs.length - 1)) {
+                    roi = epochConfigs[iEC + 1].roi;
+                }
+            }
         }
-        prevTp = transferPoints[account][nTransferPoint];
-        epochs = sub32(lastEpoch, prevTp.epoch, "ANN::getHoldingReward: invalid epoch");   
-        reward = mul96(prevTp.balance, epochs, "ANN::getHoldingReward: amount exceeds 96 bits");
-        (,,uint32 roi) = getEpochConfig(prevTp.epoch);
-        reward = percent96(reward, roi, "ANN::getHoldingReward: reward exceeds 96 bits");
-        amount = add96(amount, reward, "ANN::getHoldingReward: total amount exceeds 96 bits");
+        uint96 amount = safe96(reward / 10000, "ANN::getHoldingReward: reward exceeds 96 bits");
+        /* uint96 amount = 0;
+        uint32 epochs;
+        uint256 reward = 0;
+        // TransferPoint memory prevTp = transferPoints[account][0];
+        for (uint32 i = 0; i <= nTransferPoint; i++) {
+            TransferPoint memory tp = transferPoints[account][i];
+            (,,,uint32 ecIndex) = getEpochConfig(tp.epoch);
+            (,,,uint32 ecLastIndex) = getEpochConfig(lastEpoch);
+
+            if (lastEpoch >= tp.epoch){
+                uint32 tpEpochs;
+                uint256 tpReward = 0;
+                uint32 eligibleEpochs = lastEpoch;
+                // EpochConfig memory prevEC = epochConfigs[ecIndex];
+                for (uint32 j = ecIndex + 1; j < epochConfigs.length; j++) {
+                    if (tp.epoch <= epochConfigs[j].epoch) {
+                        if ((j + 1) > ecLastIndex) {
+                            tpEpochs = sub32(eligibleEpochs, epochConfigs[j].epoch, "ANN::getHoldingReward: invalid EC epoch");    
+                        } else {
+                            tpEpochs = sub32(epochConfigs[j+1].epoch, epochConfigs[j].epoch, "ANN::getHoldingReward: invalid EC epoch");
+                        }
+                        eligibleEpochs = sub32(eligibleEpochs, tpEpochs, "ANN::getHoldingReward: invalid eligible EC epoch");
+                        tpReward = tp.balance * tpEpochs;
+                        tpReward = percent96(tpReward, epochConfigs[j].roi, "ANN::getHoldingReward: reward exceeds 96 bits");
+                        reward = reward + tpReward;
+                        // prevEC = epochConfigs[j];
+                    }
+                }
+
+                epochs = sub32(eligibleEpochs, tp.epoch, "ANN::getHoldingReward: invalid epoch");
+                reward = reward + percent96(tp.balance * epochs, epochConfigs[ecIndex].roi, "ANN::getHoldingReward: reward exceeds 96 bits");
+                // (,,uint32 roi) = getEpochConfig(prevTp.epoch);
+                amount = add96(amount, safe96(reward, "ANN::getHoldingReward: reward exceeds 96 bits"), "ANN::getHoldingReward: total amount exceeds 96 bits");
+                // prevTp = tp;
+                lastEpoch = tp.epoch;
+            }
+        }*/
+        // prevTp = transferPoints[account][nTransferPoint];
+        // epochs = sub32(lastEpoch, prevTp.epoch, "ANN::getHoldingReward: invalid epoch");   
+        // reward = prevTp.balance * epochs;
+        // (,,uint32 roi) = getEpochConfig(prevTp.epoch);
+        // reward = percent96(reward, roi, "ANN::getHoldingReward: recent reward exceeds 96 bits");
+        // amount = add96(amount, safe96(reward, "ANN::getHoldingReward: recent reward exceeds 96 bits"), "ANN::getHoldingReward: total amount exceeds 96 bits");
 
         // Exclude already claimed amount
-        amount = sub96(amount, claimedAmounts[account], "ANN::getHoldingReward: invalid claimed amount");
+        if (claimedAmounts[account] > 0) {
+            amount = sub96(amount, claimedAmounts[account], "ANN::getHoldingReward: invalid claimed amount");
+        }
 
         return amount;
     }
@@ -535,28 +665,32 @@ contract ANN is Tokenlock {
     function _writeTransferPoint(address src, address dst, uint32 nDstPoint, uint96 srcBalance, uint96 dstBalance) internal {        
         uint32 epoch = getEpochs(block.number);
 
-        // Revoke sender in reward eligible list
-        for (uint32 i = 0; i < numTransferPoints[src]; i++) {
-            delete transferPoints[src][i];
+        if (src != address(this)) {
+            // Revoke sender in reward eligible list
+            for (uint32 i = 0; i < numTransferPoints[src]; i++) {
+                delete transferPoints[src][i];
+            }
+
+            // Remove claim amount
+            claimedAmounts[src] = 0;
+
+            // delete transferPoints[src];
+            if (srcBalance > 0) {
+                transferPoints[src][0] = TransferPoint(epoch, srcBalance);
+                numTransferPoints[src] = 1;
+            } else {
+                numTransferPoints[src] = 0;
+            }
         }
 
-        // Remove claim amount
-        claimedAmounts[src] = 0;
-
-        // delete transferPoints[src];
-        if (srcBalance > 0) {
-            transferPoints[src][0] = TransferPoint(epoch, srcBalance);
-            numTransferPoints[src] = 1;
-        } else {
-            numTransferPoints[src] = 0;
-        }
-
-        // Add recipient in reward eligible list
-        if (nDstPoint > 0 && transferPoints[dst][nDstPoint - 1].epoch >= epoch) {
-            transferPoints[dst][nDstPoint - 1].balance = dstBalance;
-        } else {
-            transferPoints[dst][nDstPoint] = TransferPoint(epoch, dstBalance);
-            numTransferPoints[dst] = nDstPoint + 1;
+        if (dst != address(this)) {
+            // Add recipient in reward eligible list
+            if (nDstPoint > 0 && transferPoints[dst][nDstPoint - 1].epoch >= epoch) {
+                transferPoints[dst][nDstPoint - 1].balance = dstBalance;
+            } else {
+                transferPoints[dst][nDstPoint] = TransferPoint(epoch, dstBalance);
+                numTransferPoints[dst] = nDstPoint + 1;
+            }
         }
 
         // emit TransferPointChanged(src, balances[src], dst, balances[dst]);
@@ -608,8 +742,8 @@ contract ANN is Tokenlock {
         return a / b;
     }
     
-    function percent96(uint96 amount, uint96 fraction, string memory errorMessage) internal pure returns(uint96) {
-        return div96(mul96(amount, fraction, errorMessage), 10000, errorMessage);
+    function percent96(uint256 amount, uint32 fraction, string memory errorMessage) internal pure returns(uint96) {
+        return safe96(amount * fraction / 10000, errorMessage);
     }
 
     function getChainId() internal pure returns (uint) {

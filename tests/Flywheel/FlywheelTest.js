@@ -490,7 +490,7 @@ describe('Flywheel', () => {
       const tx = await send(comptroller, 'claimAnnex', [a2]);
       const a2AccruedPost = await annexAccrued(comptroller, a2);
       const annBalancePost = await annBalance(comptroller, a2);
-      expect(tx.gasUsed).toBeLessThan(400000);
+      expect(tx.gasUsed).toBeLessThan(500000);
       expect(speed).toEqualNumber(annexRate);
       expect(a2AccruedPre).toEqualNumber(0);
       expect(a2AccruedPost).toEqualNumber(0);
@@ -512,7 +512,7 @@ describe('Flywheel', () => {
       const tx = await send(comptroller, 'claimAnnex', [a2, [aLOW._address]]);
       const a2AccruedPost = await annexAccrued(comptroller, a2);
       const annBalancePost = await annBalance(comptroller, a2);
-      expect(tx.gasUsed).toBeLessThan(220000);
+      expect(tx.gasUsed).toBeLessThan(300000);
       expect(speed).toEqualNumber(annexRate);
       expect(a2AccruedPre).toEqualNumber(0);
       expect(a2AccruedPost).toEqualNumber(0);

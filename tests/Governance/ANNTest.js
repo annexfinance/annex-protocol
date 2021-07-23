@@ -4,7 +4,9 @@ const {
   minerStart,
   minerStop,
   unlockedAccount,
-  mineBlock
+  mineBlock,
+  blockNumber,
+  mineBlockNumber
 } = require('../Utils/BSC');
 
 const EIP712 = require('../Utils/EIP712');
@@ -12,6 +14,7 @@ const EIP712 = require('../Utils/EIP712');
 describe('ANN', () => {
   const name = 'Annex';
   const symbol = 'ANN';
+  const startBlock = 923000;
 
   let root, a1, a2, accounts, chainId;
   let ann;
@@ -22,14 +25,11 @@ describe('ANN', () => {
     [root, a1, a2, ...accounts] = saddle.accounts;
     chainId = 1; // await web3.eth.net.getId(); See: https://github.com/trufflesuite/ganache-core/issues/515
     try {
+      await mineBlockNumber(startBlock);
       ann = await deploy('ANN', [root]);
     } catch (err) {
       console.log('deploy error: ', err);
     }
-
-    // await send(ann, 'setDailyROI', ['20'], { from: root }); // set daily ROI by owner
-    // await send(ann, 'setEpochBlockCount', ['100'], { from: root }); // set epoch block count by owner
-    // blocksPerEpoch = Number(await call(ann, 'blocksPerEpoch', []));
   });
 
   describe('metadata', () => {
@@ -192,12 +192,82 @@ describe('ANN', () => {
   });
 
   describe('setEpochConfig', () => {
-    it('check 100 blocks per epoch and 0.2% daily ROI increase config', async () => {
-      let guy = accounts[0];
+    it('checks 100 blocks per epoch and 0.2% daily ROI increase config', async () => {
       await send(ann, 'setEpochConfig', ['100', '20'], { from: root }); // set blocks and ROI per epoch by owner
       await expect(call(ann, 'getCurrentEpochBlocks', [])).resolves.toEqual('100');
       await expect(call(ann, 'getCurrentEpochROI', [])).resolves.toEqual('20');
-      await expect(call(ann, 'getCurrentEpochConfig', [])).resolves.toEqual(expect.objectContaining({ epoch: '0', blocks: '100', roi: '20'}));
+      await expect(call(ann, 'getCurrentEpochConfig', [])).resolves.toEqual(expect.objectContaining({ epoch: '32', blocks: '100', roi: '20'}));
+    });
+
+    it('returns revert if ROI exceeds max fraction', async () => {
+      await expect(send(ann, 'setEpochConfig', ['100', '10000'], { from: root })).rejects.toRevert('revert ANN::setEpochConfig: roi exceeds max fraction'); // set blocks and ROI per epoch by owner
+    });
+
+    it('returns revert if blocks is zero', async () => {
+      await expect(send(ann, 'setEpochConfig', ['0', '20'], { from: root })).rejects.toRevert('revert ANN::setEpochConfig: zero blocks'); // set blocks and ROI per epoch by owner
+    });
+  });
+
+  describe('getEpochs', () => {
+    it('returns latest epoch index if blocknumber >= epoch blocks ', async () => {
+      let guy = accounts[0];
+
+      let currentEpochBlocks = Number(await call(ann, 'getCurrentEpochBlocks', []));
+      const eligibleEpochs = await call(ann, 'eligibleEpochs', []);
+
+      // 32 epochs
+      let currentEpoch = Number(await call(ann, 'getEpochs', [startBlock.toString()]));
+      let currentBlockNumber = await blockNumber();
+
+      await advanceBlocks(currentEpochBlocks * eligibleEpochs / 2);
+
+      await send(ann, 'setEpochConfig', ['100', '10'], { from: root }); // set blocks and ROI per epoch by owner: 47 epoch
+      await expect(call(ann, 'getCurrentEpochConfig', [])).resolves.toEqual(expect.objectContaining({ epoch: '47', blocks: '100', roi: '10'}));
+
+      currentBlockNumber = await blockNumber();
+      currentEpoch = Number(await call(ann, 'getEpochs', [currentBlockNumber.toString()]));
+      currentEpochBlocks = Number(await call(ann, 'getCurrentEpochBlocks', []));
+      expect(currentEpoch).toEqual(61);
+
+      await advanceBlocks(Number(currentEpochBlocks * eligibleEpochs / 2 + currentEpochBlocks)); // 77 epochs
+      currentBlockNumber = await blockNumber();
+      await expect(call(ann, 'getEpochs', [currentBlockNumber.toString()])).resolves.toEqual('77');
+
+
+      await send(ann, 'setEpochConfig', ['100', '20'], { from: root }); // set blocks and ROI per epoch by owner
+      await expect(call(ann, 'getCurrentEpochBlocks', [])).resolves.toEqual('100');
+      await expect(call(ann, 'getCurrentEpochROI', [])).resolves.toEqual('20');
+      await expect(call(ann, 'getCurrentEpochConfig', [])).resolves.toEqual(expect.objectContaining({ epoch: '77', blocks: '100', roi: '20'}));
+
+      await advanceBlocks(100);
+
+      currentBlockNumber = await blockNumber();
+      await expect(call(ann, 'getEpochs', [currentBlockNumber])).resolves.toEqual('78');
+      
+      await advanceBlocks(500);
+
+      currentBlockNumber = await blockNumber();
+      await expect(call(ann, 'getEpochs', [currentBlockNumber])).resolves.toEqual('83');
+      
+      await send(ann, 'setEpochConfig', ['500', '20'], { from: root }); // set blocks and ROI per epoch by owner
+      await expect(call(ann, 'getCurrentEpochBlocks', [])).resolves.toEqual('500');
+      await expect(call(ann, 'getCurrentEpochROI', [])).resolves.toEqual('20');
+      await expect(call(ann, 'getCurrentEpochConfig', [])).resolves.toEqual(expect.objectContaining({ epoch: '83', blocks: '500', roi: '20'}));
+      
+      const epochConfig = await call(ann, 'getEpochConfig', [83]);
+      expect(epochConfig).toEqual(expect.objectContaining({ epoch: '83'}));
+
+      await advanceBlocks(600);
+
+      currentBlockNumber = await blockNumber();
+      await expect(call(ann, 'getEpochs', [currentBlockNumber])).resolves.toEqual('84');
+
+      await advanceBlocks(1000);
+
+      currentBlockNumber = await blockNumber();
+      await expect(call(ann, 'getEpochs', [currentBlockNumber])).resolves.toEqual('86');
+
+      await expect(call(ann, 'getEpochs', ['3147483648000'])).resolves.toEqual((2**32 - 1).toString());
     });
   });
 
@@ -214,24 +284,34 @@ describe('ANN', () => {
       await advanceBlocks(100);
 
       const t2 = await send(ann, 'transfer', [guy, '100']);
+      await expect(call(ann, 'numTransferPoints', [guy])).resolves.toEqual('1');
+
+      const currentEpochBlocks = Number(await call(ann, 'getCurrentEpochBlocks', []));
+      await advanceBlocks(currentEpochBlocks);
+
+      const t3 = await send(ann, 'transfer', [guy, '100']);
+
+      const currentBlockNumber = await blockNumber();
+      await expect(call(ann, 'getEpochs', [currentBlockNumber])).resolves.toEqual('33');
       await expect(call(ann, 'numTransferPoints', [guy])).resolves.toEqual('2');
 
-      const t3 = await send(ann, 'transfer', [a2, 10], { from: guy });
+      const t4 = await send(ann, 'transfer', [a2, 10], { from: guy });
       await expect(call(ann, 'numTransferPoints', [guy])).resolves.toEqual('1');
       await expect(call(ann, 'numTransferPoints', [a2])).resolves.toEqual('1');
 
-      await advanceBlocks(100);
+      await advanceBlocks(currentEpochBlocks);
 
-      const t4 = await send(ann, 'transfer', [guy, 20], { from: root });
+      const t5 = await send(ann, 'transfer', [guy, 20], { from: root });
       await expect(call(ann, 'numTransferPoints', [guy])).resolves.toEqual('2');
 
-      await expect(call(ann, 'transferPoints', [guy, 0])).resolves.toEqual(expect.objectContaining({ epoch: Math.floor(t3.blockNumber.toString() / blocksPerEpoch).toString(), amount: '190' }));
-      await expect(call(ann, 'transferPoints', [guy, 1])).resolves.toEqual(expect.objectContaining({ epoch: Math.floor(t4.blockNumber.toString() / blocksPerEpoch).toString(), amount: '20' }));
-      await expect(call(ann, 'transferPoints', [a2, 0])).resolves.toEqual(expect.objectContaining({ epoch: Math.floor(t3.blockNumber.toString() / blocksPerEpoch).toString(), amount: '10' }));
+      await expect(call(ann, 'transferPoints', [guy, 0])).resolves.toEqual(expect.objectContaining({ epoch: Math.floor(t4.blockNumber.toString() / currentEpochBlocks).toString(), balance: '290' }));
+      await expect(call(ann, 'transferPoints', [guy, 1])).resolves.toEqual(expect.objectContaining({ epoch: Math.floor(t5.blockNumber.toString() / currentEpochBlocks).toString(), balance: '310' }));
+      await expect(call(ann, 'transferPoints', [a2, 0])).resolves.toEqual(expect.objectContaining({ epoch: Math.floor(t4.blockNumber.toString() / currentEpochBlocks).toString(), balance: '10' }));
     });
 
     it('does not add more than one transferpoint in a block', async () => {
       let guy = accounts[0];
+      const currentEpochBlocks = Number(await call(ann, 'getCurrentEpochBlocks', []));
 
       await send(ann, 'transfer', [guy, '100']); //give an account a few tokens for readability
       await expect(call(ann, 'numTransferPoints', [a1])).resolves.toEqual('0');
@@ -246,72 +326,288 @@ describe('ANN', () => {
 
       await expect(call(ann, 'numTransferPoints', [a1])).resolves.toEqual('1');
 
-      await expect(call(ann, 'transferPoints', [a1, 0])).resolves.toEqual(expect.objectContaining({ epoch: Math.floor(t1.blockNumber.toString() / blocksPerEpoch).toString(), amount: '20' }));
-      await expect(call(ann, 'transferPoints', [a1, 1])).resolves.toEqual(expect.objectContaining({ epoch: '0', amount: '0' }));
+      await expect(call(ann, 'transferPoints', [a1, 0])).resolves.toEqual(expect.objectContaining({ epoch: Math.floor(t1.blockNumber.toString() / currentEpochBlocks).toString(), balance: '20' }));
+      await expect(call(ann, 'transferPoints', [a1, 1])).resolves.toEqual(expect.objectContaining({ epoch: '0', balance: '0' }));
 
       const t3 = await send(ann, 'transfer', [guy, 20], { from: root });
       await expect(call(ann, 'numTransferPoints', [guy])).resolves.toEqual('1');
-      await expect(call(ann, 'transferPoints', [guy, 0])).resolves.toEqual(expect.objectContaining({ epoch: Math.floor(t3.blockNumber.toString() / blocksPerEpoch).toString(), amount: '100' }));
+      await expect(call(ann, 'transferPoints', [guy, 0])).resolves.toEqual(expect.objectContaining({ epoch: Math.floor(t3.blockNumber.toString() / currentEpochBlocks).toString(), balance: '100' }));
+    });
+
+    it('returns zero numTransferPoints if transfer to ANN contract', async () => {
+      let guy = accounts[0];
+      let annAddress = ann.options.address;
+      const currentEpochBlocks = Number(await call(ann, 'getCurrentEpochBlocks', []));
+      const eligibleEpochs = await call(ann, 'eligibleEpochs', []);
+
+      await send(ann, 'transfer', [annAddress, '100']); //give an account a few tokens for readability
+      await expect(call(ann, 'numTransferPoints', [annAddress])).resolves.toEqual('0');
+      
+      await advanceBlocks(currentEpochBlocks * eligibleEpochs);
+      await expect(call(ann, 'numTransferPoints', [annAddress])).resolves.toEqual('0');
+
+      const t2 = await send(ann, 'transfer', [annAddress, 20], { from: root });
+      const annTransferPoints = await call(ann, 'transferPoints', [annAddress, '0']);
+
+      expect(annTransferPoints).toEqual(expect.objectContaining({ balance: '0', epoch: '0' }));
+      await expect(call(ann, 'numTransferPoints', [annAddress])).resolves.toEqual('0');
     });
   });
 
   describe('getHoldingReward', () => {
 
     it('returns 0 if there are no transferPoints', async () => {
+      await expect(call(ann, 'numTransferPoints', [a1])).resolves.toEqual('0');
       expect(await call(ann, 'getHoldingReward', [a1])).toEqual('0');
     });
 
     it('returns the latest block if >= last transferPoint block', async () => {
       const balanceANN = await call(ann, 'balanceOf', [root]);
-      const eligibleDelay = await call(ann, 'eligibleDelay', []);
+      const currentEpochBlocks = Number(await call(ann, 'getCurrentEpochBlocks', []));
+      const eligibleEpochs = await call(ann, 'eligibleEpochs', []);
       const t1 = await send(ann, 'transfer', [a1, balanceANN], { from: root });
 
-      await expect(call(ann, 'blocksPerEpoch', [])).resolves.toEqual(blocksPerEpoch.toString());
+      let currentEpoch = Number(await call(ann, 'getEpochs', [startBlock.toString()]));
+      await advanceBlocks(currentEpochBlocks * eligibleEpochs / 2);
 
-      await advanceBlocks(blocksPerEpoch * eligibleDelay);
+      let currentBlockNumber = await blockNumber();
+      currentEpoch = Number(await call(ann, 'getEpochs', [currentBlockNumber.toString()]));
       expect(await call(ann, 'getHoldingReward', [a1])).toEqual('0');
 
-      await advanceBlocks(blocksPerEpoch - 1);
-      console.log(balanceANN, await call(ann, 'transferPoints', [a1, 0]), await call(ann, 'getCurrentEpoch', []), await call(ann, 'getHoldingReward', [a1]));
-      expect(await call(ann, 'getHoldingReward', [a1])).toEqual((balanceANN * 20 / 10000 * eligibleDelay).toString());
+      await advanceBlocks(Number(currentEpochBlocks * eligibleEpochs / 2 + currentEpochBlocks));
+      currentBlockNumber = await blockNumber();
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('6000000000000000000000000');
 
-      //await advanceBlocks(blocksPerEpoch * eligibleDelay);
-      //expect(await call(ann, 'getHoldingReward', [a1])).toEqual((balanceANN * 20 / 10000 * eligibleDelay * 2).toString());
+      await advanceBlocks(currentEpochBlocks * eligibleEpochs);
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('12000000000000000000000000');
     });
 
-    // it('returns zero if < first checkpoint block', async () => {
-    //   await mineBlock();
-    //   const t1 = await send(ann, 'delegate', [a1], { from: root });
-    //   await mineBlock();
-    //   await mineBlock();
+    it('returns the holding rewards after claim rewards', async () => {
+      const balanceANN = await call(ann, 'balanceOf', [root]);
+      const currentEpochBlocks = Number(await call(ann, 'getCurrentEpochBlocks', []));
+      const eligibleEpochs = await call(ann, 'eligibleEpochs', []);
 
-    //   expect(await call(ann, 'getPriorVotes', [a1, t1.blockNumber - 1])).toEqual('0');
-    //   expect(await call(ann, 'getPriorVotes', [a1, t1.blockNumber + 1])).toEqual('100000000000000000000000000');
-    // });
+      let annAddress = ann.options.address;
+      
+      await send(ann, 'transfer', [annAddress, '2000']); //sent holding reward tokens to ANN contract address
 
-    // it('generally returns the voting balance at the appropriate checkpoint', async () => {
-    //   const t1 = await send(ann, 'delegate', [a1], { from: root });
-    //   await mineBlock();
-    //   await mineBlock();
-    //   const t2 = await send(ann, 'transfer', [a2, 10], { from: root });
-    //   await mineBlock();
-    //   await mineBlock();
-    //   const t3 = await send(ann, 'transfer', [a2, 10], { from: root });
-    //   await mineBlock();
-    //   await mineBlock();
-    //   const t4 = await send(ann, 'transfer', [root, 20], { from: a2 });
-    //   await mineBlock();
-    //   await mineBlock();
+      const t1 = await send(ann, 'transfer', [a1, 10000], { from: root });
 
-    //   expect(await call(ann, 'getPriorVotes', [a1, t1.blockNumber - 1])).toEqual('0');
-    //   expect(await call(ann, 'getPriorVotes', [a1, t1.blockNumber])).toEqual('100000000000000000000000000');
-    //   expect(await call(ann, 'getPriorVotes', [a1, t1.blockNumber + 1])).toEqual('100000000000000000000000000');
-    //   expect(await call(ann, 'getPriorVotes', [a1, t2.blockNumber])).toEqual('99999999999999999999999990');
-    //   expect(await call(ann, 'getPriorVotes', [a1, t2.blockNumber + 1])).toEqual('99999999999999999999999990');
-    //   expect(await call(ann, 'getPriorVotes', [a1, t3.blockNumber])).toEqual('99999999999999999999999980');
-    //   expect(await call(ann, 'getPriorVotes', [a1, t3.blockNumber + 1])).toEqual('99999999999999999999999980');
-    //   expect(await call(ann, 'getPriorVotes', [a1, t4.blockNumber])).toEqual('100000000000000000000000000');
-    //   expect(await call(ann, 'getPriorVotes', [a1, t4.blockNumber + 1])).toEqual('100000000000000000000000000');
-    // });
+      let currentEpoch = Number(await call(ann, 'getEpochs', [startBlock.toString()]));
+      await advanceBlocks(currentEpochBlocks * eligibleEpochs / 2);
+
+      let currentBlockNumber = await blockNumber();
+      currentEpoch = Number(await call(ann, 'getEpochs', [currentBlockNumber.toString()]));
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('0');
+
+      await advanceBlocks(Number(currentEpochBlocks * eligibleEpochs / 2 + currentEpochBlocks));
+      currentBlockNumber = await blockNumber();
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('600');
+
+      let t2 = await send(ann, 'claimReward', [], { from: a1 });
+
+      expect(await call(ann, 'balanceOf', [annAddress])).toEqual('1400');
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('0');
+      expect(await call(ann, 'balanceOf', [a1])).toEqual('10600');
+
+      await advanceBlocks(currentEpochBlocks * 2);
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('40');
+
+      let t3 = await send(ann, 'claimReward', [], { from: a1 });
+      expect(await call(ann, 'balanceOf', [annAddress])).toEqual('1360');
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('0');
+      expect(await call(ann, 'balanceOf', [a1])).toEqual('10640');
+    });
+
+    it('returns the holding rewards after claim rewards and send ANN', async () => {
+      let currentBlockNumber = await blockNumber();
+      let currentEpoch = Number(await call(ann, 'getEpochs', [currentBlockNumber.toString()]));
+      let currentEpochBlocks = Number(await call(ann, 'getCurrentEpochBlocks', []));
+
+      const balanceANN = await call(ann, 'balanceOf', [root]);
+      const eligibleEpochs = await call(ann, 'eligibleEpochs', []);
+
+      const annAddress = ann.options.address;
+      
+      await send(ann, 'transfer', [annAddress, '2000']); // send holding reward tokens to ANN contract address
+
+      await send(ann, 'transfer', [a1, 10000], { from: root }); // 32 epochs
+
+      currentEpoch = Number(await call(ann, 'getEpochs', [currentBlockNumber.toString()]));
+      await advanceBlocks(currentEpochBlocks * eligibleEpochs / 2);
+
+      currentBlockNumber = await blockNumber();
+      currentEpoch = Number(await call(ann, 'getEpochs', [currentBlockNumber.toString()]));
+      currentEpochBlocks = Number(await call(ann, 'getCurrentEpochBlocks', []));
+      await send(ann, 'setEpochConfig', ['100', '10'], { from: root }); // set blocks and ROI per epoch by owner: 47 epoch
+
+      currentBlockNumber = await blockNumber();
+      currentEpoch = Number(await call(ann, 'getEpochs', [currentBlockNumber.toString()]));
+      currentEpochBlocks = Number(await call(ann, 'getCurrentEpochBlocks', []));
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('0');
+
+      await advanceBlocks(Number(currentEpochBlocks * eligibleEpochs / 2 + currentEpochBlocks)); // 77 epochs
+      currentBlockNumber = await blockNumber();
+      currentEpoch = Number(await call(ann, 'getEpochs', [currentBlockNumber.toString()]));
+      currentEpochBlocks = Number(await call(ann, 'getCurrentEpochBlocks', []));
+
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('590'); // 0.2% * 15 epochs + 0.1% * 29 epochs
+
+      let t2 = await send(ann, 'claimReward', [], { from: a1 });
+
+      expect(await call(ann, 'balanceOf', [annAddress])).toEqual('1410');
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('0');
+      expect(await call(ann, 'balanceOf', [a1])).toEqual('10590');
+
+      await advanceBlocks(currentEpochBlocks * 2);
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('20');
+
+      await send(ann, 'transfer', [a2, '1000'], { from: a1 });
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('0');
+
+      let t3 = await send(ann, 'claimReward', [], { from: a1 });
+
+      expect(await call(ann, 'balanceOf', [annAddress])).toEqual('1410');
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('0');
+      expect(await call(ann, 'balanceOf', [a1])).toEqual('9590');
+      
+    });
+
+    it('returns the holding rewards after multiple receive ANN', async () => {
+      let currentBlockNumber = await blockNumber();
+      let currentEpoch = Number(await call(ann, 'getEpochs', [currentBlockNumber.toString()]));
+      let currentEpochBlocks = Number(await call(ann, 'getCurrentEpochBlocks', []));
+
+      const balanceANN = await call(ann, 'balanceOf', [root]);
+      const eligibleEpochs = await call(ann, 'eligibleEpochs', []);
+
+      const annAddress = ann.options.address;
+      
+      await send(ann, 'transfer', [annAddress, '10000']); // send holding reward tokens to ANN contract address
+
+      await send(ann, 'transfer', [a1, 10000], { from: root }); // 32 epochs
+
+      currentEpoch = Number(await call(ann, 'getEpochs', [currentBlockNumber.toString()]));
+      await advanceBlocks(currentEpochBlocks * eligibleEpochs / 2);
+
+      currentBlockNumber = await blockNumber();
+      currentEpoch = Number(await call(ann, 'getEpochs', [currentBlockNumber.toString()]));
+      currentEpochBlocks = Number(await call(ann, 'getCurrentEpochBlocks', []));
+      await send(ann, 'setEpochConfig', ['100', '10'], { from: root }); // set blocks and ROI per epoch by owner: 47 epoch
+
+      currentBlockNumber = await blockNumber();
+      currentEpoch = Number(await call(ann, 'getEpochs', [currentBlockNumber.toString()]));
+      currentEpochBlocks = Number(await call(ann, 'getCurrentEpochBlocks', []));
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('0');
+
+      await advanceBlocks(Number(currentEpochBlocks * eligibleEpochs / 2 + currentEpochBlocks)); // 77 epochs
+      currentBlockNumber = await blockNumber();
+      currentEpoch = Number(await call(ann, 'getEpochs', [currentBlockNumber.toString()]));
+      currentEpochBlocks = Number(await call(ann, 'getCurrentEpochBlocks', []));
+
+      await send(ann, 'transfer', [a1, 5000], { from: root }); // 77 epochs
+
+      await advanceBlocks(Number(currentEpochBlocks *  10)); // 87 epochs
+
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('690'); // 10,000 ANN * (0.2% * 15 epochs + 0.1% * 29 epochs) + 10,000 ANN * 0.1% * 10 epochs
+
+      await advanceBlocks(Number(currentEpochBlocks *  eligibleEpochs + currentEpochBlocks)); // 118 epochs
+      currentBlockNumber = await blockNumber();
+      currentEpoch = Number(await call(ann, 'getEpochs', [currentBlockNumber.toString()]));
+      currentEpochBlocks = Number(await call(ann, 'getCurrentEpochBlocks', []));
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('1200'); // 10,000 ANN * (0.2% * 15 epochs + 0.1% * 30 epochs) + 15,000 ANN * 0.1% * 40 epochs
+
+      await send(ann, 'transfer', [a1, 20000], { from: root }); // 118 epochs
+
+      await advanceBlocks(Number(currentEpochBlocks *  10)); // 128 epochs
+
+      currentBlockNumber = await blockNumber();
+      currentEpoch = Number(await call(ann, 'getEpochs', [currentBlockNumber.toString()]));
+      currentEpochBlocks = Number(await call(ann, 'getCurrentEpochBlocks', []));
+      // Reward Amount: 10,000 ANN * (0.2% * 15 epochs + 0.1% * 30 epochs) + 15,000 ANN * 0.1% * 50 epochs
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('1350');
+
+      await advanceBlocks(Number(currentEpochBlocks *  eligibleEpochs + currentEpochBlocks)); // 159 epochs
+
+      // Reward Amount: 10,000 ANN * (0.2% * 15 epochs + 0.1% * 30 epochs) + 15,000 ANN * 0.1% * 41 epochs + 35,000 ANN * 0.1% * 40 epochs
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('2615');
+
+
+      let t2 = await send(ann, 'claimReward', [], { from: a1 });
+
+      expect(await call(ann, 'balanceOf', [annAddress])).toEqual('7385');
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('0');
+      expect(await call(ann, 'balanceOf', [a1])).toEqual('37615');
+
+      await advanceBlocks(currentEpochBlocks * 2);
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('70'); // 35,000 ANN * 0.1% * 2 epochs
+
+      await send(ann, 'transfer', [a2, '1000'], { from: a1 });
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('0');
+
+      let t3 = await send(ann, 'claimReward', [], { from: a1 });
+
+      expect(await call(ann, 'balanceOf', [annAddress])).toEqual('7385');
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('0');
+      expect(await call(ann, 'balanceOf', [a1])).toEqual('36615');
+      
+    });
+
+
+    it('returns the holding rewards after multiple receive ANN', async () => {
+      let currentBlockNumber = await blockNumber();
+      let currentEpoch = Number(await call(ann, 'getEpochs', [currentBlockNumber.toString()]));
+      let currentEpochBlocks = Number(await call(ann, 'getCurrentEpochBlocks', []));
+
+      const balanceANN = await call(ann, 'balanceOf', [root]);
+      const eligibleEpochs = await call(ann, 'eligibleEpochs', []);
+
+      const annAddress = ann.options.address;
+      
+      await send(ann, 'transfer', [annAddress, '10000']); // send holding reward tokens to ANN contract address
+
+      await send(ann, 'transfer', [a1, 10000], { from: root }); // 32 epochs
+
+      currentEpoch = Number(await call(ann, 'getEpochs', [currentBlockNumber.toString()]));
+      await advanceBlocks(currentEpochBlocks * eligibleEpochs / 2);
+
+      currentBlockNumber = await blockNumber();
+      currentEpoch = Number(await call(ann, 'getEpochs', [currentBlockNumber.toString()]));
+      currentEpochBlocks = Number(await call(ann, 'getCurrentEpochBlocks', []));
+      await send(ann, 'setEpochConfig', ['100', '10'], { from: root }); // set blocks and ROI per epoch by owner: 47 epoch
+
+      currentBlockNumber = await blockNumber();
+      currentEpoch = Number(await call(ann, 'getEpochs', [currentBlockNumber.toString()]));
+      currentEpochBlocks = Number(await call(ann, 'getCurrentEpochBlocks', []));
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('0');
+
+      await advanceBlocks(Number(currentEpochBlocks * eligibleEpochs / 2 + currentEpochBlocks)); // 77 epochs
+      currentBlockNumber = await blockNumber();
+      currentEpoch = Number(await call(ann, 'getEpochs', [currentBlockNumber.toString()]));
+      currentEpochBlocks = Number(await call(ann, 'getCurrentEpochBlocks', []));
+
+      await send(ann, 'transfer', [a1, 5000], { from: root }); // 77 epochs
+
+      await advanceBlocks(Number(currentEpochBlocks *  10)); // 87 epochs
+
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('690'); // 10,000 ANN * (0.2% * 15 epochs + 0.1% * 29 epochs) + 10,000 ANN * 0.1% * 10 epochs
+
+
+      await minerStop();
+      let tp3 = send(ann, 'transfer', [a1, 2000], { from: root });
+      let tp4 = send(ann, 'setEpochConfig', ['100', '30'], { from: root });
+      await minerStart();
+
+      tp3 = await tp3;
+      tp4 = await tp4;
+
+      await advanceBlocks(Number(currentEpochBlocks *  eligibleEpochs + currentEpochBlocks)); // 118 epochs
+      currentBlockNumber = await blockNumber();
+      currentEpoch = Number(await call(ann, 'getEpochs', [currentBlockNumber.toString()]));
+      currentEpochBlocks = Number(await call(ann, 'getCurrentEpochBlocks', []));
+      (await call(ann, 'getHoldingReward1', [a1]));
+
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('2280'); 
+    });
   });
 });
