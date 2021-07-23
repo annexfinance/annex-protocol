@@ -32,6 +32,7 @@ contract AnnexPriceOracle is PriceOracle {
     IStdReference ref;
 
     constructor(IStdReference _ref) public {
+        require(_ref != address(0), "_ref is zero address");
         ref = _ref;
         admin = msg.sender;
     }

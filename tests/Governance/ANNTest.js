@@ -48,6 +48,28 @@ describe('ANN', () => {
     });
   });
 
+  describe('ownership', () => {
+    it('get owner address', async () => {
+      expect(await call(ann, 'owner', [])).toEqual(root);
+    });
+
+    it('authorize ownership and assume', async () => {
+      await send(ann, 'authorizeOwnershipTransfer', [a1]);
+      expect(await call(ann, 'owner', [])).toEqual(root);
+      expect(await call(ann, 'authorizedNewOwner', [])).toEqual(a1);
+
+      await send(ann, 'assumeOwnership', [], { from: a1 });
+      expect(await call(ann, 'authorizedNewOwner', [])).toEqual(address(0));
+      expect(await call(ann, 'owner', [])).toEqual(a1);
+    });
+
+    it('renounce ownership', async () => {
+      await send(ann, 'renounceOwnership', [root]);
+      expect(await call(ann, 'owner', [])).toEqual(address(0));
+      expect(await call(ann, 'authorizedNewOwner', [])).toEqual(address(0));
+    });
+  });
+
   describe('delegateBySig', () => {
     const Domain = (ann) => ({ name, chainId, verifyingContract: ann._address });
     const Types = {

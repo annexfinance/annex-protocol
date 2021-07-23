@@ -1,52 +1,116 @@
 pragma solidity ^0.5.16;
 
-contract Owned {
 
-    address public owner;
+/*
+ * @dev Provides information about the current execution context, including the
+ * sender of the transaction and its data. While these are generally available
+ * via msg.sender and msg.data, they should not be accessed in such a direct
+ * manner, since when dealing with GSN meta-transactions the account sending and
+ * paying for execution may not be the actual sender (as far as an application
+ * is concerned).
+ *
+ * This contract is only required for intermediate, library-like contracts.
+ */
+contract Context {
+  // Empty internal constructor, to prevent people from mistakenly deploying
+  // an instance of this contract, which should be used via inheritance.
+  constructor () internal { }
 
-    event OwnershipTransferred(address indexed _from, address indexed _to);
+  function _msgSender() internal view returns (address payable) {
+    return msg.sender;
+  }
 
-    constructor() public {
-        owner = msg.sender;
-    }
-
-    modifier onlyOwner {
-        require(msg.sender == owner, "Should be owner");
-        _;
-    }
-
-    function transferOwnership(address newOwner) public onlyOwner {
-        owner = newOwner;
-        emit OwnershipTransferred(owner, newOwner);
-    }
+  function _msgData() internal view returns (bytes memory) {
+    this; // silence state mutability warning without generating bytecode - see https://github.com/ethereum/solidity/issues/2691
+    return msg.data;
+  }
 }
 
-contract Tokenlock is Owned {
-    /// @notice Indicates if token is locked
-    uint8 isLocked = 0;
-
-    event Freezed();
-    event UnFreezed();
-
-    modifier validLock {
-        require(isLocked == 0, "Token is locked");
+// File: @openzeppelin/contracts/access/Ownable.sol
+/**
+ * @dev Contract module which provides a basic access control mechanism, where
+ * there is an account (an owner) that can be granted exclusive access to
+ * specific functions.
+ *
+ * By default, the owner account will be the one that deploys the contract. This
+ * can later be changed with {transferOwnership}.
+ *
+ * This module is used through inheritance. It will make available the modifier
+ * `onlyOwner`, which can be applied to your functions to restrict their use to
+ * the owner.
+ */
+contract Ownable is Context {
+    address private _owner;
+    address private _authorizedNewOwner;
+    event OwnershipTransferAuthorization(address indexed authorizedAddress);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    /**
+     * @dev Initializes the contract setting the deployer as the initial owner.
+     */
+    constructor () internal {
+        address msgSender = _msgSender();
+        _owner = msgSender;
+        emit OwnershipTransferred(address(0), msgSender);
+    }
+    /**
+     * @dev Returns the address of the current owner.
+     */
+    function owner() public view returns (address) {
+        return _owner;
+    }
+    /**
+     * @dev Throws if called by any account other than the owner.
+     */
+    modifier onlyOwner() {
+        require(owner() == _msgSender(), "Ownable: caller is not the owner");
         _;
     }
-
-    function freeze() public onlyOwner {
-        isLocked = 1;
-
-        emit Freezed();
+    /**
+     * @dev Returns the address of the current authorized new owner.
+     */
+    function authorizedNewOwner() public view returns (address) {
+        return _authorizedNewOwner;
     }
-
-    function unfreeze() public onlyOwner {
-        isLocked = 0;
-
-        emit UnFreezed();
+    /**
+     * @notice Authorizes the transfer of ownership from _owner to the provided address.
+     * NOTE: No transfer will occur unless authorizedAddress calls assumeOwnership( ).
+     * This authorization may be removed by another call to this function authorizing
+     * the null address.
+     *
+     * @param authorizedAddress The address authorized to become the new owner.
+     */
+    function authorizeOwnershipTransfer(address authorizedAddress) external onlyOwner {
+        _authorizedNewOwner = authorizedAddress;
+        emit OwnershipTransferAuthorization(_authorizedNewOwner);
     }
+    /**
+     * @notice Transfers ownership of this contract to the _authorizedNewOwner.
+     */
+    function assumeOwnership() external {
+        require(_msgSender() == _authorizedNewOwner, "Ownable: only the authorized new owner can accept ownership");
+        emit OwnershipTransferred(_owner, _authorizedNewOwner);
+        _owner = _authorizedNewOwner;
+        _authorizedNewOwner = address(0);
+    }
+    /**
+     * @dev Leaves the contract without owner. It will not be possible to call
+     * `onlyOwner` functions anymore. Can only be called by the current owner.
+     *
+     * NOTE: Renouncing ownership will leave the contract without an owner,
+     * thereby removing any functionality that is only available to the owner.
+     *
+     * @param confirmAddress The address wants to give up ownership.
+     */
+    function renounceOwnership(address confirmAddress) public onlyOwner {
+        require(confirmAddress == _owner, "Ownable: confirm address is wrong");
+        emit OwnershipTransferred(_owner, address(0));
+        _authorizedNewOwner = address(0);
+        _owner = address(0);
+    }
+    
 }
 
-contract ANN is Tokenlock {
+contract ANN is Ownable {
     /// @notice BEP-20 token name for this token
     string public constant name = "Annex";
 
@@ -169,7 +233,7 @@ contract ANN is Tokenlock {
      * @param rawAmount The number of tokens that are approved (2^256-1 means infinite)
      * @return Whether or not the approval succeeded
      */
-    function approve(address spender, uint rawAmount) external validLock returns (bool) {
+    function approve(address spender, uint rawAmount) external returns (bool) {
         uint96 amount;
         if (rawAmount == uint(-1)) {
             amount = uint96(-1);
@@ -198,7 +262,7 @@ contract ANN is Tokenlock {
      * @param rawAmount The number of tokens to transfer
      * @return Whether or not the transfer succeeded
      */
-    function transfer(address dst, uint rawAmount) external validLock returns (bool) {
+    function transfer(address dst, uint rawAmount) external  returns (bool) {
         uint96 amount = safe96(rawAmount, "ANN::transfer: amount exceeds 96 bits");
         _transferTokens(msg.sender, dst, amount);
         return true;
@@ -211,7 +275,7 @@ contract ANN is Tokenlock {
      * @param rawAmount The number of tokens to transfer
      * @return Whether or not the transfer succeeded
      */
-    function transferFrom(address src, address dst, uint rawAmount) external validLock returns (bool) {
+    function transferFrom(address src, address dst, uint rawAmount) external  returns (bool) {
         address spender = msg.sender;
         uint96 spenderAllowance = allowances[src][spender];
         uint96 amount = safe96(rawAmount, "ANN::approve: amount exceeds 96 bits");
@@ -231,7 +295,7 @@ contract ANN is Tokenlock {
      * @notice Delegate votes from `msg.sender` to `delegatee`
      * @param delegatee The address to delegate votes to
      */
-    function delegate(address delegatee) public validLock {
+    function delegate(address delegatee) public  {
         return _delegate(msg.sender, delegatee);
     }
 
@@ -244,7 +308,7 @@ contract ANN is Tokenlock {
      * @param r Half of the ECDSA signature pair
      * @param s Half of the ECDSA signature pair
      */
-    function delegateBySig(address delegatee, uint nonce, uint expiry, uint8 v, bytes32 r, bytes32 s) public validLock {
+    function delegateBySig(address delegatee, uint nonce, uint expiry, uint8 v, bytes32 r, bytes32 s) public  {
         bytes32 domainSeparator = keccak256(abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name)), getChainId(), address(this)));
         bytes32 structHash = keccak256(abi.encode(DELEGATION_TYPEHASH, delegatee, nonce, expiry));
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
@@ -601,7 +665,7 @@ contract ANN is Tokenlock {
     /**
      * @notice Receive the current holding rewart amount to msg.sender
      */
-    function claimReward() public validLock {
+    function claimReward() public  {
         uint96 holdingReward = getHoldingReward(msg.sender);
         claimedAmounts[msg.sender] = add96(claimedAmounts[msg.sender], holdingReward, "ANN::claimReward: invalid claimed amount");
         _transferTokens(address(this), msg.sender, holdingReward);
