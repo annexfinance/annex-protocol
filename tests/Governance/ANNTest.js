@@ -627,7 +627,6 @@ describe('ANN', () => {
       currentBlockNumber = await blockNumber();
       currentEpoch = Number(await call(ann, 'getEpochs', [currentBlockNumber.toString()]));
       currentEpochBlocks = Number(await call(ann, 'getCurrentEpochBlocks', []));
-      (await call(ann, 'getHoldingReward1', [a1]));
 
       expect(await call(ann, 'getHoldingReward', [a1])).toEqual('2280'); 
     });
