@@ -88,7 +88,7 @@ Test "Check transferFrom reverts with not sufficient allowance"
 Test "Check transfer reverts when transferring too much"
     ANN Deploy Geoff
     AllowFailures
-    From Geoff (ANN Transfer Jared 100000001e18)
+    From Geoff (ANN Transfer Jared 1000000001e18)
     Assert Revert "revert ANN::_transferTokens: transfer amount exceeds balance"
 
 Test "Check transfer reverts when transferring to address 0"
