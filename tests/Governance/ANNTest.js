@@ -44,7 +44,7 @@ describe('ANN', () => {
 
   describe('balanceOf', () => {
     it('grants to initial account', async () => {
-      expect(await call(ann, 'balanceOf', [root])).toEqual("100000000000000000000000000");
+      expect(await call(ann, 'balanceOf', [root])).toEqual("1000000000000000000000000000");
     });
   });
 
@@ -173,8 +173,8 @@ describe('ANN', () => {
       await mineBlock();
       await mineBlock();
 
-      expect(await call(ann, 'getPriorVotes', [a1, t1.blockNumber])).toEqual('100000000000000000000000000');
-      expect(await call(ann, 'getPriorVotes', [a1, t1.blockNumber + 1])).toEqual('100000000000000000000000000');
+      expect(await call(ann, 'getPriorVotes', [a1, t1.blockNumber])).toEqual('1000000000000000000000000000');
+      expect(await call(ann, 'getPriorVotes', [a1, t1.blockNumber + 1])).toEqual('1000000000000000000000000000');
     });
 
     it('returns zero if < first checkpoint block', async () => {
@@ -184,7 +184,7 @@ describe('ANN', () => {
       await mineBlock();
 
       expect(await call(ann, 'getPriorVotes', [a1, t1.blockNumber - 1])).toEqual('0');
-      expect(await call(ann, 'getPriorVotes', [a1, t1.blockNumber + 1])).toEqual('100000000000000000000000000');
+      expect(await call(ann, 'getPriorVotes', [a1, t1.blockNumber + 1])).toEqual('1000000000000000000000000000');
     });
 
     it('generally returns the voting balance at the appropriate checkpoint', async () => {
@@ -202,14 +202,14 @@ describe('ANN', () => {
       await mineBlock();
 
       expect(await call(ann, 'getPriorVotes', [a1, t1.blockNumber - 1])).toEqual('0');
-      expect(await call(ann, 'getPriorVotes', [a1, t1.blockNumber])).toEqual('100000000000000000000000000');
-      expect(await call(ann, 'getPriorVotes', [a1, t1.blockNumber + 1])).toEqual('100000000000000000000000000');
-      expect(await call(ann, 'getPriorVotes', [a1, t2.blockNumber])).toEqual('99999999999999999999999990');
-      expect(await call(ann, 'getPriorVotes', [a1, t2.blockNumber + 1])).toEqual('99999999999999999999999990');
-      expect(await call(ann, 'getPriorVotes', [a1, t3.blockNumber])).toEqual('99999999999999999999999980');
-      expect(await call(ann, 'getPriorVotes', [a1, t3.blockNumber + 1])).toEqual('99999999999999999999999980');
-      expect(await call(ann, 'getPriorVotes', [a1, t4.blockNumber])).toEqual('100000000000000000000000000');
-      expect(await call(ann, 'getPriorVotes', [a1, t4.blockNumber + 1])).toEqual('100000000000000000000000000');
+      expect(await call(ann, 'getPriorVotes', [a1, t1.blockNumber])).toEqual('1000000000000000000000000000');
+      expect(await call(ann, 'getPriorVotes', [a1, t1.blockNumber + 1])).toEqual('1000000000000000000000000000');
+      expect(await call(ann, 'getPriorVotes', [a1, t2.blockNumber])).toEqual('999999999999999999999999990');
+      expect(await call(ann, 'getPriorVotes', [a1, t2.blockNumber + 1])).toEqual('999999999999999999999999990');
+      expect(await call(ann, 'getPriorVotes', [a1, t3.blockNumber])).toEqual('999999999999999999999999980');
+      expect(await call(ann, 'getPriorVotes', [a1, t3.blockNumber + 1])).toEqual('999999999999999999999999980');
+      expect(await call(ann, 'getPriorVotes', [a1, t4.blockNumber])).toEqual('1000000000000000000000000000');
+      expect(await call(ann, 'getPriorVotes', [a1, t4.blockNumber + 1])).toEqual('1000000000000000000000000000');
     });
   });
 
@@ -398,10 +398,10 @@ describe('ANN', () => {
 
       await advanceBlocks(Number(currentEpochBlocks * eligibleEpochs / 2 + currentEpochBlocks));
       currentBlockNumber = await blockNumber();
-      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('6000000000000000000000000');
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('60000000000000000000000000');
 
       await advanceBlocks(currentEpochBlocks * eligibleEpochs);
-      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('12000000000000000000000000');
+      expect(await call(ann, 'getHoldingReward', [a1])).toEqual('120000000000000000000000000');
     });
 
     it('returns the holding rewards after claim rewards', async () => {

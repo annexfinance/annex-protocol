@@ -317,7 +317,7 @@ describe('AnnexLens', () => {
         expect(
           cullTuple(await call(AnnexLens, 'getANNBalanceMetadata', [ann._address, acct]))
         ).toEqual({
-          balance: "100000000000000000000000000",
+          balance: "1000000000000000000000000000",
           delegate: "0x0000000000000000000000000000000000000000",
           votes: "0",
         });
@@ -332,7 +332,7 @@ describe('AnnexLens', () => {
         expect(
           cullTuple(await call(AnnexLens, 'getANNBalanceMetadataExt', [ann._address, comptroller._address, acct]))
         ).toEqual({
-          balance: "100000000000000000000000000",
+          balance: "1000000000000000000000000000",
           delegate: "0x0000000000000000000000000000000000000000",
           votes: "0",
           allocated: "5"

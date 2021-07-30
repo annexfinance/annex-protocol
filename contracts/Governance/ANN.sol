@@ -120,7 +120,7 @@ contract ANN is Ownable {
     uint8 public constant decimals = 18;
 
     /// @notice Total number of tokens in circulation
-    uint public constant totalSupply = 100000000e18; // 100 million ANN
+    uint public constant totalSupply = 1000000000e18; // 1 billion ANN
 
     /// @notice Reward eligible epochs
     uint32 public constant eligibleEpochs = 30; // 30 epochs

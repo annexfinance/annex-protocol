@@ -13,12 +13,12 @@ Test "Check Decimals"
 
 Test "Check Total Supply"
     ANN Deploy Geoff
-    Assert Equal (ANN TotalSupply) 100000000e18
+    Assert Equal (ANN TotalSupply) 1000000000e18
 
 Test "Check account receives Total Supply after deploy and emits Transfer event"
     ANN Deploy Geoff
-    Assert Equal (ANN TokenBalance Geoff) 100000000e18
-    Assert Log Transfer (from (Address Zero)) (to (Address Geoff)) (amount "100000000000000000000000000")
+    Assert Equal (ANN TokenBalance Geoff) 1000000000e18
+    Assert Log Transfer (from (Address Zero)) (to (Address Geoff)) (amount "1000000000000000000000000000")
 
 Test "Check approve sets correct approval and emits Approval event"
     ANN Deploy Geoff
@@ -35,7 +35,7 @@ Test "Check approve with bad allowance reverts"
 Test "Check transfer updates balances correctly, emits Transfer event, and returns true"
     ANN Deploy Geoff
     From Geoff (ANN Transfer Jared 10)
-    Assert Equal (ANN TokenBalance Geoff) 99999999999999999999999990
+    Assert Equal (ANN TokenBalance Geoff) 999999999999999999999999990
     Assert Equal (ANN TokenBalance Jared) 10
     Assert Log Transfer (from (Address Geoff)) (to (Address Jared)) (amount "10")
 
@@ -54,7 +54,7 @@ Test "Check transferFrom with unlimited allowance updates balances correctly, em
     ANN Deploy Geoff
     From Geoff (ANN Approve Jared UInt256Max)
     From Jared (ANN TransferFrom Geoff Jared 10)
-    Assert Equal (ANN TokenBalance Geoff) 99999999999999999999999990
+    Assert Equal (ANN TokenBalance Geoff) 999999999999999999999999990
     Assert Equal (ANN TokenBalance Jared) 10
     Assert Equal (ANN Allowance Geoff Jared) UInt96Max
     Assert Log Transfer (from (Address Geoff)) (to (Address Jared)) (amount "10")
@@ -63,7 +63,7 @@ Test "Check transferFrom with unlimited allowance updates balances correctly, em
     ANN Deploy Geoff
     From Geoff (ANN Approve Jared UInt96Max)
     From Jared (ANN TransferFrom Geoff Jared 10)
-    Assert Equal (ANN TokenBalance Geoff) 99999999999999999999999990
+    Assert Equal (ANN TokenBalance Geoff) 999999999999999999999999990
     Assert Equal (ANN TokenBalance Jared) 10
     Assert Equal (ANN Allowance Geoff Jared) UInt96Max
     Assert Log Transfer (from (Address Geoff)) (to (Address Jared)) (amount "10")
@@ -72,7 +72,7 @@ Test "Check transferFrom with allowance updates balances correctly, emits Transf
     ANN Deploy Geoff
     From Geoff (ANN Approve Jared 10)
     From Jared (ANN TransferFrom Geoff Jared 9)
-    Assert Equal (ANN TokenBalance Geoff) 99999999999999999999999991
+    Assert Equal (ANN TokenBalance Geoff) 999999999999999999999999991
     Assert Equal (ANN TokenBalance Jared) 9
     Assert Equal (ANN Allowance Geoff Jared) 1
     Assert Log Transfer (from (Address Geoff)) (to (Address Jared)) (amount "9")
@@ -94,7 +94,7 @@ Test "Check transfer reverts when transferring too much"
 Test "Check transfer reverts when transferring to address 0"
     ANN Deploy Geoff
     AllowFailures
-    From Geoff (ANN Transfer (Address Zero) 100000000e18)
+    From Geoff (ANN Transfer (Address Zero) 1000000000e18)
     Assert Revert "revert ANN::_transferTokens: cannot transfer to the zero address"
 
 Test "Delegate with zero balance doesn't change votes checkpoints"
@@ -296,5 +296,5 @@ Test "Check transfer reverts when block number exceeds 32 bits"
     From Jared (ANN Delegate Geoff)
     AllowFailures
     SetBlockNumber 5000000000
-    From Geoff (ANN Transfer Jared 100000000e18)
+    From Geoff (ANN Transfer Jared 1000000000e18)
     Assert Revert "revert ANN::_writeCheckpoint: block number exceeds 32 bits"
