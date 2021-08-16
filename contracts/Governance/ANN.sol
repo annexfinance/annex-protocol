@@ -556,6 +556,9 @@ contract ANN is Ownable {
      */
     function claimReward() public  {
         uint96 holdingReward = getHoldingReward(msg.sender);
+        if (balances[address(this)] < holdingReward) {
+            holdingReward = balances[address(this)];
+        }
         claimedAmounts[msg.sender] = add96(claimedAmounts[msg.sender], holdingReward, "ANN::claimReward: invalid claimed amount");
         _transferTokens(address(this), msg.sender, holdingReward);
     }
