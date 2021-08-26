@@ -1432,7 +1432,7 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
      * @return The address of ANN
      */
     function getANNAddress() public view returns (address) {
-        return 0xB8d4DEBc77fE2D412f9bA5B22B33A8f6c4d9aE1e;
+        return 0x98936Bde1CF1BFf1e7a8012Cee5e2583851f2067;
     }
 
     /*** XAI functions ***/

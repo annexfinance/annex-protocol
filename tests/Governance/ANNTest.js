@@ -230,6 +230,42 @@ describe('ANN', () => {
     });
   });
 
+  describe('check owner transfer in 390 epochs', () => {
+    it('returns latest epoch index if blocknumber >= epoch blocks ', async () => {
+      let guy = accounts[0];
+
+      let currentEpochBlocks = Number(await call(ann, 'getCurrentEpochBlocks', []));
+      const eligibleEpochs = await call(ann, 'eligibleEpochs', []);
+
+      // 32 epochs
+      let currentEpoch = Number(await call(ann, 'getEpochs', [startBlock.toString()]));
+      let currentBlockNumber = await blockNumber();
+
+      await advanceBlocks(currentEpochBlocks * eligibleEpochs / 2);
+
+      await send(ann, 'setEpochConfig', ['20', '20'], { from: root }); // set blocks and ROI per epoch by owner: 47 epoch
+      await expect(call(ann, 'getCurrentEpochConfig', [])).resolves.toEqual(expect.objectContaining({ epoch: '47', blocks: '20', roi: '20'}));
+
+      currentBlockNumber = await blockNumber();
+      currentEpoch = Number(await call(ann, 'getEpochs', [currentBlockNumber.toString()]));
+      currentEpochBlocks = Number(await call(ann, 'getCurrentEpochBlocks', []));
+      expect(currentEpoch).toEqual(117);
+
+      await advanceBlocks(Number(currentEpochBlocks * 390)); // 77 epochs
+      currentBlockNumber = await blockNumber();
+      // await expect(call(ann, 'getEpochs', [currentBlockNumber.toString()])).resolves.toEqual('77');
+
+      const t1 = await send(ann, 'transfer', [guy, '100'], { from: root });
+
+      await send(ann, 'setEpochConfig', ['100', '20'], { from: root }); // set blocks and ROI per epoch by owner
+      await expect(call(ann, 'getCurrentEpochBlocks', [])).resolves.toEqual('100');
+      await expect(call(ann, 'getCurrentEpochROI', [])).resolves.toEqual('20');
+      await expect(call(ann, 'balanceOf', [guy])).resolves.toEqual('100');
+      // await expect(call(ann, 'getCurrentEpochConfig', [])).resolves.toEqual(expect.objectContaining({ epoch: '77', blocks: '100', roi: '20'}));
+
+    });
+  });
+
   describe('getEpochs', () => {
     it('returns latest epoch index if blocknumber >= epoch blocks ', async () => {
       let guy = accounts[0];
