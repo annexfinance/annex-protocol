@@ -25,7 +25,7 @@ describe('GovernorAlpha#queue/1', () => {
       const gov = await deploy('GovernorAlpha', [timelock._address, ann._address, root]);
       const txAdmin = await send(timelock, 'harnessSetAdmin', [gov._address]);
 
-      await enfranchise(ann, a1, 3e6);
+      await enfranchise(ann, a1, 3e7);
       await mineBlock();
 
       const targets = [ann._address, ann._address];
@@ -49,8 +49,8 @@ describe('GovernorAlpha#queue/1', () => {
       const gov = await deploy('GovernorAlpha', [timelock._address, ann._address, root]);
       const txAdmin = await send(timelock, 'harnessSetAdmin', [gov._address]);
 
-      await enfranchise(ann, a1, 3e6);
-      await enfranchise(ann, a2, 3e6);
+      await enfranchise(ann, a1, 3e7);
+      await enfranchise(ann, a2, 3e7);
       await mineBlock();
 
       const targets = [ann._address];

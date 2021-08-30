@@ -4,8 +4,8 @@ Macro DeployGov
     Counter Deploy CNT1
     Timelock Deploy Jared 604800
     ANN Deploy Bank
-    Enfranchise Root 600001e18
-    Enfranchise Jared 600000e18
+    Enfranchise Root 20000001e18
+    Enfranchise Jared 200000000e18
     Governor Deploy Alpha LegitGov (Address Timelock) (Address ANN) Guardian
     Timelock SetAdmin (Address LegitGov)
 

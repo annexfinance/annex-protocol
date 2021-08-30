@@ -62,7 +62,7 @@ describe("governorAlpha#castVote/2", () => {
 
       it("and we add that ForVotes", async () => {
         actor = accounts[1];
-        await enfranchise(ann, actor, 400001);
+        await enfranchise(ann, actor, 10000001);
 
         await send(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"], { from: actor });
         proposalId = await call(gov, 'latestProposalIds', [actor]);
@@ -72,12 +72,12 @@ describe("governorAlpha#castVote/2", () => {
         await send(gov, 'castVote', [proposalId, true], { from: actor });
 
         let afterFors = (await call(gov, 'proposals', [proposalId])).forVotes;
-        expect(new BigNumber(afterFors)).toEqual(new BigNumber(beforeFors).plus(bnbMantissa(400001)));
+        expect(new BigNumber(afterFors)).toEqual(new BigNumber(beforeFors).plus(bnbMantissa(10000001)));
       })
 
       it("or AgainstVotes corresponding to the caller's support flag.", async () => {
         actor = accounts[3];
-        await enfranchise(ann, actor, 400001);
+        await enfranchise(ann, actor, 10000001);
 
         await send(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"], { from: actor });
         proposalId = await call(gov, 'latestProposalIds', [actor]);;
@@ -87,7 +87,7 @@ describe("governorAlpha#castVote/2", () => {
         await send(gov, 'castVote', [proposalId, false], { from: actor });
 
         let afterAgainsts = (await call(gov, 'proposals', [proposalId])).againstVotes;
-        expect(new BigNumber(afterAgainsts)).toEqual(new BigNumber(beforeAgainsts).plus(bnbMantissa(400001)));
+        expect(new BigNumber(afterAgainsts)).toEqual(new BigNumber(beforeAgainsts).plus(bnbMantissa(10000001)));
       });
     });
 
@@ -109,7 +109,7 @@ describe("governorAlpha#castVote/2", () => {
       });
 
       it('casts vote on behalf of the signatory', async () => {
-        await enfranchise(ann, a1, 400001);
+        await enfranchise(ann, a1, 10000001);
         await send(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"], { from: a1 });
         proposalId = await call(gov, 'latestProposalIds', [a1]);;
 
@@ -121,15 +121,15 @@ describe("governorAlpha#castVote/2", () => {
         expect(tx.gasUsed < 80000);
 
         let afterFors = (await call(gov, 'proposals', [proposalId])).forVotes;
-        expect(new BigNumber(afterFors)).toEqual(new BigNumber(beforeFors).plus(bnbMantissa(400001)));
+        expect(new BigNumber(afterFors)).toEqual(new BigNumber(beforeFors).plus(bnbMantissa(10000001)));
       });
     });
 
     it("receipt uses one load", async () => {
       let actor = accounts[2];
       let actor2 = accounts[3];
-      await enfranchise(ann, actor, 400001);
-      await enfranchise(ann, actor2, 400001);
+      await enfranchise(ann, actor, 10000001);
+      await enfranchise(ann, actor2, 10000001);
       await send(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"], { from: actor });
       proposalId = await call(gov, 'latestProposalIds', [actor]);
 
@@ -149,7 +149,7 @@ describe("governorAlpha#castVote/2", () => {
         postFilter: ({source}) => !source || source.includes('receipts'),
         execLog: (log) => {
           let [output] = log.outputs;
-          let votes = "000000000000000000000000000000000000000054b419003bdf81640000";
+          let votes = "0000000000000000000000000000000000000008459523f4b7fbf1640000";
           let voted = "01";
           let support = "01";
 
@@ -170,7 +170,7 @@ describe("governorAlpha#castVote/2", () => {
         postFilter: ({source}) => !source || source.includes('receipts'),
         execLog: (log) => {
           let [output] = log.outputs;
-          let votes = "0000000000000000000000000000000000000000a968320077bf02c80000";
+          let votes = "00000000000000000000000000000000000000108b2a47e96ff7e2c80000";
           let voted = "01";
           let support = "00";
 

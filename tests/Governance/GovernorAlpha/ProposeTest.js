@@ -123,7 +123,7 @@ describe('GovernorAlpha#propose/5', () => {
     });
 
     it("This function returns the id of the newly created proposal. # proposalId(n) = succ(proposalId(n-1))", async () => {
-      await send(ann, 'transfer', [accounts[2], bnbMantissa(400001)]);
+      await send(ann, 'transfer', [accounts[2], bnbMantissa(10000001)]);
       await send(ann, 'delegate', [accounts[2]], { from: accounts[2] });
 
       await mineBlock();
@@ -134,7 +134,7 @@ describe('GovernorAlpha#propose/5', () => {
     });
 
     it("emits log with id and description", async () => {
-      await send(ann, 'transfer', [accounts[3], bnbMantissa(400001)]);
+      await send(ann, 'transfer', [accounts[3], bnbMantissa(10000001)]);
       await send(ann, 'delegate', [accounts[3]], { from: accounts[3] });
       await mineBlock();
       let nextProposalId = await gov.methods['propose'](targets, values, signatures, callDatas, "yoot").call({ from: accounts[3] });

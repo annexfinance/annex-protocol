@@ -6,10 +6,10 @@ contract GovernorAlpha {
     string public constant name = "Annex Governor Alpha";
 
     /// @notice The number of votes in support of a proposal required in order for a quorum to be reached and for a vote to succeed
-    function quorumVotes() public pure returns (uint) { return 600000e18; } // 600,000 = 2% of ANN
+    function quorumVotes() public pure returns (uint) { return 20000000e18; } // 600,000 = 2% of ANN
 
     /// @notice The number of votes required in order for a voter to become a proposer
-    function proposalThreshold() public pure returns (uint) { return 300000e18; } // 300,000 = 1% of ANN
+    function proposalThreshold() public pure returns (uint) { return 10000000e18; } // 300,000 = 1% of ANN
 
     /// @notice The maximum number of actions that can be included in a proposal
     function proposalMaxOperations() public pure returns (uint) { return 10; } // 10 actions

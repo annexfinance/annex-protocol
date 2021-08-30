@@ -5,8 +5,8 @@ Macro DeployGov
     ANN Deploy Bank
     Governor Deploy Alpha LegitGov (Address Timelock) (Address ANN) Guardian
     Timelock SetAdmin (Address LegitGov)
-    Enfranchise Root 600001e18
-    Enfranchise Jared 600000e18
+    Enfranchise Root 20000001e18
+    Enfranchise Jared 200000000e18
 
 Macro Enfranchise user amount
     From Bank (ANN Transfer user amount)

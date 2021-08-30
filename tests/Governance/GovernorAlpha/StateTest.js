@@ -35,7 +35,7 @@ describe('GovernorAlpha#state/1', () => {
     timelock = await deploy('TimelockHarness', [root, delay]);
     gov = await deploy('GovernorAlpha', [timelock._address, ann._address, root]);
     await send(timelock, "harnessSetAdmin", [gov._address])
-    await send(ann, 'transfer', [acct, bnbMantissa(4000000)]);
+    await send(ann, 'transfer', [acct, bnbMantissa(40000000)]);
     await send(ann, 'delegate', [acct], { from: acct });
   });
 
@@ -66,7 +66,7 @@ describe('GovernorAlpha#state/1', () => {
   })
 
   it("Canceled", async () => {
-    await send(ann, 'transfer', [accounts[0], bnbMantissa(4000000)]);
+    await send(ann, 'transfer', [accounts[0], bnbMantissa(40000000)]);
     await send(ann, 'delegate', [accounts[0]], { from: accounts[0] });
     await mineBlock()
     await send(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"], { from: accounts[0] })
