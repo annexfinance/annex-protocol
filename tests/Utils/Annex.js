@@ -481,6 +481,16 @@ async function quickMintXAI(comptroller, xai, xaiMinter, xaiMintAmount, opts = {
   expect(await send(xai, 'harnessIncrementTotalSupply', [xaiMintAmount], { xaiMinter })).toSucceed();
 }
 
+async function quickBorrow(aToken, borrower, borrowAmount, opts = {}) {
+  // make sure to accrue interest
+  await fastForward(aToken, 1);
+
+  if (dfn(opts.exchangeRate))
+    expect(await send(aToken, 'harnessSetExchangeRate', [etherMantissa(opts.exchangeRate)])).toSucceed();
+
+  return send(aToken, 'borrow', [borrowAmount], { from: borrower });
+}
+
 async function preSupply(aToken, account, tokens, opts = {}) {
   if (dfn(opts.total, true)) {
     expect(await send(aToken, 'harnessSetTotalSupply', [tokens])).toSucceed();
@@ -573,6 +583,7 @@ module.exports = {
   quickMint,
   quickMintXAI,
 
+  quickBorrow,
   preSupply,
   quickRedeem,
   quickRedeemUnderlying,

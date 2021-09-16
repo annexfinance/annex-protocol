@@ -14,7 +14,7 @@ import "./XAI/XAI.sol";
  * @title Annex's Comptroller Contract
  * @author Annex
  */
-contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
+contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
     /// @notice Emitted when an admin supports a market
     event MarketListed(AToken aToken);
 
@@ -56,6 +56,12 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
 
     /// @notice Emitted when a new Annex speed is calculated for a market
     event AnnexSpeedUpdated(AToken indexed aToken, uint newSpeed);
+
+    /// @notice Emitted when a new borrow-side Annex speed is calculated for a market
+    event AnnexBorrowSpeedUpdated(AToken indexed aToken, uint oldSpeed, uint newSpeed);
+
+    /// @notice Emitted when a new supply-side Annex speed is calculated for a market
+    event AnnexSupplySpeedUpdated(AToken indexed aToken, uint oldSpeed, uint newSpeed);
 
     /// @notice Emitted when ANN is distributed to a supplier
     event DistributedSupplierAnnex(AToken indexed aToken, address indexed supplier, uint annexDelta, uint annexSupplyIndex);
@@ -995,10 +1001,40 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
         markets[address(aToken)] = Market({isListed: true, isAnnex: false, collateralFactorMantissa: 0});
 
         _addMarketInternal(aToken);
+        _initializeMarket(aToken);
 
         emit MarketListed(aToken);
 
         return uint(Error.NO_ERROR);
+    }
+
+    /** @dev Initializes {supply,borrow}State structure for the market.
+     *  Sets {supply,borrow}State.index to the default value and
+     *  {supply,borrow}State.block to the current block number.
+     */
+    function _initializeMarket(AToken aToken) internal {
+        uint32 blockNumber = safe32(getBlockNumber(), "block number exceeds 32 bits");
+
+        AnnexMarketState storage supplyState = annexSupplyState[address(aToken)];
+        AnnexMarketState storage borrowState = annexBorrowState[address(aToken)];
+
+        // If the market has been removed and then added again, the indices values
+        // may be nonzero. Although market removal is not supported at the moment,
+        // we leave the `index == 0` check to prevent resetting the indices if/when
+        // this functionality gets implemented.
+        if (supplyState.index == 0) {
+            supplyState.index = annexInitialIndex;
+            supplyState.block = blockNumber;
+        }
+
+        if (borrowState.index == 0) {
+            borrowState.index = annexInitialIndex;
+            borrowState.block = blockNumber;
+        }
+
+        // If we re-initialize, we skip the blocks without accruing; if we initialize
+        // for the first time, we just set the current block number
+        supplyState.block = borrowState.block = blockNumber;
     }
 
     function _addMarketInternal(AToken aToken) internal {
@@ -1129,6 +1165,18 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
     function _become(Unitroller unitroller) public {
         require(msg.sender == unitroller.admin(), "only unitroller admin can");
         require(unitroller._acceptImplementation() == 0, "not authorized");
+        Comptroller(address(unitroller))._upgradeSplitXVSRewards();
+    }
+
+    function _upgradeSplitXVSRewards() public {
+        require(msg.sender == comptrollerImplementation, "only brains can become itself");
+
+        // annexSpeeds -> annexBorrowSpeeds & annexSupplySpeeds
+        for (uint i = 0; i < allMarkets.length; i ++) {
+            address market = address(allMarkets[i]);
+            annexBorrowSpeeds[market] = annexSupplySpeeds[market] = annexSpeeds[market];
+            delete annexSpeeds[market];
+        }
     }
 
     /**
@@ -1139,39 +1187,29 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
     }
 
     /*** Annex Distribution ***/
+    function setAnnexSpeedInternal(AToken aToken, uint newSupplySpeed, uint newBorrowSpeed) internal {
+        Market storage market = markets[address(aToken)];
+        require(market.isListed, "annex market is not listed");
 
-    function setAnnexSpeedInternal(AToken aToken, uint annexSpeed) internal {
-        uint currentAnnexSpeed = annexSpeeds[address(aToken)];
-        if (currentAnnexSpeed != 0) {
-            // note that ANN speed could be set to 0 to halt liquidity rewards for a market
-            Exp memory borrowIndex = Exp({mantissa: aToken.borrowIndex()});
+        uint currentSupplySpeed = annexSupplySpeeds[address(aToken)];
+        if (currentSupplySpeed != newSupplySpeed) {
+            // make sure Annex with the previous supply speed is accrued before the change
             updateAnnexSupplyIndex(address(aToken));
+            annexSupplySpeeds[address(aToken)] = newSupplySpeed;
+            emit AnnexSupplySpeedUpdated(aToken, currentSupplySpeed, newSupplySpeed);
+        }
+
+
+        uint currentBorrowSpeed = annexBorrowSpeeds[address(aToken)];
+        if (currentBorrowSpeed != newBorrowSpeed) {
+            // make sure Annex with the previous borrow speed is accrued before the change
+            Exp memory borrowIndex = Exp({mantissa: aToken.borrowIndex()});
             updateAnnexBorrowIndex(address(aToken), borrowIndex);
-        } else if (annexSpeed != 0) {
-            // Add the ANN market
-            Market storage market = markets[address(aToken)];
-            require(market.isListed == true, "annex market is not listed");
+            annexBorrowSpeeds[address(aToken)] = newBorrowSpeed;
+            emit AnnexBorrowSpeedUpdated(aToken, currentBorrowSpeed, newBorrowSpeed);
+        
+    }
 
-            if (annexSupplyState[address(aToken)].index == 0 && annexSupplyState[address(aToken)].block == 0) {
-                annexSupplyState[address(aToken)] = AnnexMarketState({
-                    index: annexInitialIndex,
-                    block: safe32(getBlockNumber(), "block number exceeds 32 bits")
-                });
-            }
-
-
-        if (annexBorrowState[address(aToken)].index == 0 && annexBorrowState[address(aToken)].block == 0) {
-                annexBorrowState[address(aToken)] = AnnexMarketState({
-                    index: annexInitialIndex,
-                    block: safe32(getBlockNumber(), "block number exceeds 32 bits")
-                });
-            }
-        }
-
-        if (currentAnnexSpeed != annexSpeed) {
-            annexSpeeds[address(aToken)] = annexSpeed;
-            emit AnnexSpeedUpdated(aToken, annexSpeed);
-        }
     }
 
     /**
@@ -1180,7 +1218,8 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
      */
     function updateAnnexSupplyIndex(address aToken) internal {
         AnnexMarketState storage supplyState = annexSupplyState[aToken];
-        uint supplySpeed = annexSpeeds[aToken];
+        // uint supplySpeed = annexSpeeds[aToken];
+        uint supplySpeed = annexSupplySpeeds[aToken];
         uint blockNumber = getBlockNumber();
         uint deltaBlocks = sub_(blockNumber, uint(supplyState.block));
         if (deltaBlocks > 0 && supplySpeed > 0) {
@@ -1203,7 +1242,8 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
      */
     function updateAnnexBorrowIndex(address aToken, Exp memory marketBorrowIndex) internal {
         AnnexMarketState storage borrowState = annexBorrowState[aToken];
-        uint borrowSpeed = annexSpeeds[aToken];
+        // uint borrowSpeed = annexSpeeds[aToken];
+        uint borrowSpeed = annexBorrowSpeeds[aToken];
         uint blockNumber = getBlockNumber();
         uint deltaBlocks = sub_(blockNumber, uint(borrowState.block));
         if (deltaBlocks > 0 && borrowSpeed > 0) {
@@ -1407,11 +1447,12 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
     /**
      * @notice Set ANN speed for a single market
      * @param aToken The market whose ANN speed to update
-     * @param annexSpeed New ANN speed for market
+     * @param newSupplySpeed New ANN speed for market
+     * @param newBorrowSpeed New ANN speed for market
      */
-    function _setAnnexSpeed(AToken aToken, uint annexSpeed) public {
+    function _setAnnexSpeed(AToken aToken, uint newSupplySpeed, uint newBorrowSpeed) public {
         require(adminOrInitializing(), "only admin can set annex speed");
-        setAnnexSpeedInternal(aToken, annexSpeed);
+        setAnnexSpeedInternal(aToken, newSupplySpeed, newBorrowSpeed);
     }
 
     /**

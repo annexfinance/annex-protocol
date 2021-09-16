@@ -371,7 +371,7 @@ export function comptrollerFetchers() {
         #### CallNum
 
         * "CallNum signature:<String> ...callArgs<CoreValue>" - Simple direct call method
-          * E.g. "Comptroller CallNum \"annexSpeeds(address)\" (Address Coburn)"
+          * E.g. "Comptroller CallNum \"annexSupplySpeeds(address)\" (Address Coburn)"
       `,
       "CallNum",
       [
@@ -467,7 +467,7 @@ export function comptrollerFetchers() {
       }
     ),
     new Fetcher<{comptroller: Comptroller, AToken: AToken}, NumberA>(`
-        #### AnnexSpeed
+        #### AnnexSpeed (DEPRECATED)
 
         * "Comptroller AnnexSpeed aZRX
       `,
@@ -478,6 +478,32 @@ export function comptrollerFetchers() {
       ],
       async (world, {comptroller, AToken}) => {
         return new NumberA(await comptroller.methods.annexSpeeds(AToken._address).call());
+      }
+    ),
+    new Fetcher<{comptroller: Comptroller, AToken: AToken}, NumberA>(`
+        #### AnnexSupplySpeed
+        * "Comptroller AnnexSupplySpeed aZRX
+      `,
+      "AnnexSupplySpeed",
+      [
+        new Arg("comptroller", getComptroller, {implicit: true}),
+        new Arg("AToken", getATokenV),
+      ],
+      async (world, {comptroller, AToken}) => {
+        return new NumberA(await comptroller.methods.annexSupplySpeeds(AToken._address).call());
+      }
+    ),
+    new Fetcher<{comptroller: Comptroller, AToken: AToken}, NumberA>(`
+        #### AnnexBorrowSpeed
+        * "Comptroller AnnexBorrowSpeed aZRX
+      `,
+      "AnnexBorrowSpeed",
+      [
+        new Arg("comptroller", getComptroller, {implicit: true}),
+        new Arg("AToken", getATokenV),
+      ],
+      async (world, {comptroller, AToken}) => {
+        return new NumberA(await comptroller.methods.annexBorrowSpeeds(AToken._address).call());
       }
     ),
     new Fetcher<{ comptroller: Comptroller, address: AddressA }, NumberA>(`

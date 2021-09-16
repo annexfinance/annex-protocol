@@ -44,8 +44,8 @@ Macro InitSpeeds
     Mint Coburn 6e18 aBAT--tokenbalance = 6e18 / 2e9 = 3e9
     EnterMarkets Coburn aBAT
     Borrow Coburn 1e18 aZRX
-    Comptroller SetAnnexSpeed aZRX 1
-    Comptroller SetAnnexSpeed aBAT 1
+    Comptroller SetAnnexSpeed aZRX 1 1
+    Comptroller SetAnnexSpeed aBAT 1 1
     Comptroller RefreshAnnexSpeeds
     Comptroller Send "setANNAddress(address)" (Address ANN)
 
@@ -56,19 +56,19 @@ Test "ANN speed can be set per market"
     Assert Equal (Comptroller AnnexAccrued Geoff) 0
     Assert Equal (Bep20 ANN TokenBalance Geoff) 0
     -- Annex speed can be set
-    Comptroller SetAnnexSpeed aZRX 2
+    Comptroller SetAnnexSpeed aZRX 2 2
     FastForward 1000 Blocks
     Comptroller ClaimAnnex Geoff
     Assert Equal (Comptroller AnnexAccrued Geoff) 0
     Assert Equal (Bep20 ANN TokenBalance Geoff) 2000
     -- Annex speed can be changed
-    Comptroller SetAnnexSpeed aZRX 4
+    Comptroller SetAnnexSpeed aZRX 4 4
     FastForward 1000 Blocks
     Comptroller ClaimAnnex Geoff
     Assert Equal (Comptroller AnnexAccrued Geoff) 0
     Assert Equal (Bep20 ANN TokenBalance Geoff) 6000
     -- Annex speed can be removed
-    Comptroller SetAnnexSpeed aZRX 0
+    Comptroller SetAnnexSpeed aZRX 0 0
     FastForward 1000 Blocks
     Comptroller ClaimAnnex Geoff
     Assert Equal (Comptroller AnnexAccrued Geoff) 0
@@ -83,7 +83,7 @@ Test "Set ann rate is removed"
 Test "ANN is not claimed automatically"
     GrantsComptroller
     InitSpeeds
-    Comptroller SetAnnexSpeed aZRX 2
+    Comptroller SetAnnexSpeed aZRX 2 2.5e10
     FastForward 100000 Blocks
     -- Check ann is not claimed automatically
     Mint Geoff 50e18 aZRX

@@ -145,8 +145,9 @@ let filterInitialized = async (borrowersByAToken) => {
 	let batchSize = 75;
 	console.log(`Calling annexBorrowerIndex for borrowers in batches of ${batchSize}...\n`);
 	for(let aTokenAddr of Object.keys(borrowersByAToken)) {
-		let speed = await call(Comptroller, 'annexSpeeds', [aTokenAddr]);
-		if (Number(speed) != 0){
+		let supplySpeed = await call(Comptroller, 'annexSupplySpeeds', [aTokenAddr]);
+		let borrowSpeed = await call(Comptroller, 'annexBorrowSpeeds', [aTokenAddr]);
+		if (Number(supplySpeed) != 0 || Number(borrowSpeed) != 0 ){
 			for (let borrowerChunk of getChunks(borrowersByAToken[aTokenAddr], batchSize)) {
 				try {
 					let indices = await Promise.all(borrowerChunk.map(

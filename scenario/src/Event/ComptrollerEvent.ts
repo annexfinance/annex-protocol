@@ -276,12 +276,12 @@ async function setAnnexRate(world: World, from: string, comptroller: Comptroller
   return world;
 }
 
-async function setAnnexSpeed(world: World, from: string, comptroller: Comptroller, aToken: AToken, speed: NumberA): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods._setAnnexSpeed(aToken._address, speed.encode()), from, ComptrollerErrorReporter);
+async function setAnnexSpeed(world: World, from: string, comptroller: Comptroller, aToken: AToken, supplySpeed: NumberA,borrowSpeed:NumberA): Promise<World> {
+  let invokation = await invoke(world, comptroller.methods._setAnnexSpeed(aToken._address,supplySpeed.encode(), borrowSpeed.encode()), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
-    `Annex speed for market ${aToken._address} set to ${speed.show()}`,
+    `Annex speed for market ${aToken._address} set to ${supplySpeed.show()}  (supply), ${borrowSpeed.show()} (borrow)`,
     invokation
   );
 
@@ -686,18 +686,19 @@ export function comptrollerCommands() {
       ],
       (world, from, {comptroller, rate}) => setAnnexRate(world, from, comptroller, rate)
     ),
-    new Command<{comptroller: Comptroller, aToken: AToken, speed: NumberA}>(`
+    new Command<{comptroller: Comptroller, aToken: AToken, supplySpeed: NumberA, borrowSpeed: NumberA}>(`
       #### SetAnnexSpeed
-      * "Comptroller SetAnnexSpeed <aToken> <rate>" - Sets ANN speed for market
-      * E.g. "Comptroller SetAnnexSpeed aToken 1000
+      * "Comptroller SetAnnexSpeed <aToken> <rate>" - Sets ANN speed for market (for suppliers and borrowers separately)
+      * E.g. "Comptroller SetAnnexSpeed aToken 1000 2000
       `,
       "SetAnnexSpeed",
       [
         new Arg("comptroller", getComptroller, {implicit: true}),
         new Arg("aToken", getATokenV),
-        new Arg("speed", getNumberA)
+        new Arg("supplySpeed", getNumberA),
+        new Arg("borrowSpeed", getNumberA)
       ],
-      (world, from, {comptroller, aToken, speed}) => setAnnexSpeed(world, from, comptroller, aToken, speed)
+      (world, from, {comptroller, aToken, supplySpeed, borrowSpeed}) => setAnnexSpeed(world, from, comptroller, aToken, supplySpeed, borrowSpeed)
     ),
     new Command<{comptroller: Comptroller, aTokens: AToken[], borrowCaps: NumberA[]}>(`
       #### SetMarketBorrowCaps
