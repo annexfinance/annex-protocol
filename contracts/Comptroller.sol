@@ -1165,10 +1165,10 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
     function _become(Unitroller unitroller) public {
         require(msg.sender == unitroller.admin(), "only unitroller admin can");
         require(unitroller._acceptImplementation() == 0, "not authorized");
-        Comptroller(address(unitroller))._upgradeSplitXVSRewards();
+        Comptroller(address(unitroller))._upgradeSplitANNRewards();
     }
 
-    function _upgradeSplitXVSRewards() public {
+    function _upgradeSplitANNRewards() public {
         require(msg.sender == comptrollerImplementation, "only brains can become itself");
 
         // annexSpeeds -> annexBorrowSpeeds & annexSupplySpeeds

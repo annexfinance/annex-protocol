@@ -20,12 +20,12 @@ Macro FlywheelComptroller price=1.0 borrowRate=0.000005 annexInitAmount=5000000e
     Support aZRX collateralFactor:0.5
     Support aBAT collateralFactor:0.5
     Comptroller AddAnnexMarkets (aZRX aBAT)
-    Bep20 Deploy Standard XVS "XVS Token" 18
-    Give (Address Comptroller) annexInitAmount XVS
-    Comptroller Send "setANNAddress(address)" (Address XVS)
-    Bep20 Deploy Standard VAI "VAI Token" 18
-    Give (Address Comptroller) annexInitAmount VAI
-    Comptroller Send "setXAIAddress(address)" (Address VAI)
+    Bep20 Deploy Standard ANN "ANN Token" 18
+    Give (Address Comptroller) annexInitAmount ANN
+    Comptroller Send "setANNAddress(address)" (Address ANN)
+    Bep20 Deploy Standard XAI "XAI Token" 18
+    Give (Address Comptroller) annexInitAmount XAI
+    Comptroller Send "setXAIAddress(address)" (Address XAI)
 
 Macro GrantsComptroller
     FlywheelComptroller
@@ -52,30 +52,30 @@ Macro InitSpeeds
     Comptroller SetAnnexSpeed aZRX 1 1
     Comptroller SetAnnexSpeed aBAT 1 1
     Comptroller RefreshAnnexSpeeds
-    Comptroller Send "setANNAddress(address)" (Address XVS)
+    Comptroller Send "setANNAddress(address)" (Address ANN)
 
 Test "ANN can be granted in combination with liquidity rewards"
     GrantsComptroller
     InitSpeeds
     Assert Equal (Comptroller AnnexAccrued Geoff) 0
-    Assert Equal (Bep20 XVS TokenBalance Geoff) 0
+    Assert Equal (Bep20 ANN TokenBalance Geoff) 0
     FastForward 1000 Blocks
     Comptroller ClaimAnnex Geoff
-    Comptroller Send "_grantXVS(address,uint256)" (Address Geoff) 1000
+    Comptroller Send "_grantANN(address,uint256)" (Address Geoff) 1000
     Assert Equal (Comptroller AnnexAccrued Geoff) 0
-    Assert Equal (Bep20 XVS TokenBalance Geoff) 1000000000000000001000
+    Assert Equal (Bep20 ANN TokenBalance Geoff) 1000000000000000001000
 
-Test "XVS can be granted"
+Test "ANN can be granted"
     -- Can be granted once
     GrantsComptroller
     InitSpeeds
     Assert Equal (Comptroller AnnexAccrued Geoff) 0
-    Assert Equal (Bep20 XVS TokenBalance Geoff) 0
-    Comptroller Send "_grantXVS(address,uint256)" (Address Geoff) 1000
+    Assert Equal (Bep20 ANN TokenBalance Geoff) 0
+    Comptroller Send "_grantANN(address,uint256)" (Address Geoff) 1000
     Assert Equal (Comptroller AnnexAccrued Geoff) 0
-    Assert Equal (Bep20 XVS TokenBalance Geoff) 1000
+    Assert Equal (Bep20 ANN TokenBalance Geoff) 1000
     -- Assert Log AnnexGranted (recipient (Address Geoff)) (amount "1000")
     -- Can be granted multiple times
-    Comptroller Send "_grantXVS(address,uint256)" (Address Geoff) 2000
+    Comptroller Send "_grantANN(address,uint256)" (Address Geoff) 2000
     Assert Equal (Comptroller AnnexAccrued Geoff) 0
-    Assert Equal (Bep20 XVS TokenBalance Geoff) 3000
+    Assert Equal (Bep20 ANN TokenBalance Geoff) 3000

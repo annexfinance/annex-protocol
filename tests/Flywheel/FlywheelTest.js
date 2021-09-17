@@ -215,9 +215,9 @@ describe("Flywheel", () => {
     const annexRemaining = annexRate.mul(100);
     const deltaBlocks = 10;
 
-    // Transfer XVS to the comptroller
+    // Transfer ANN to the comptroller
     await send(
-      comptroller.xvs,
+      comptroller.ann,
       "transfer",
       [comptroller._address, annexRemaining],
       { from: root }
@@ -233,7 +233,7 @@ describe("Flywheel", () => {
     // a1 - borrow (with supplied collateral)
     await quickMint(aUSD, a1, borrowCollateralAmount);
     await enterMarkets([aUSD], a1);
-    expect(await quickBorrow(vLOW, a1, borrowAmount)).toSucceed(); // a1 is the borrower
+    expect(await quickBorrow(aLOW, a1, borrowAmount)).toSucceed(); // a1 is the borrower
 
     // Initialize XVS speeds
     await send(comptroller, "_setAnnexSpeed", [
@@ -282,7 +282,7 @@ describe("Flywheel", () => {
     }
   };
 
-  it("should accrue XVS correctly with only supply-side rewards", async () => {
+  it("should accrue ANN correctly with only supply-side rewards", async () => {
     await checkAccrualsBorrowAndSupply({
       annexSupplySpeed: bnbExp(0.5),
       annexBorrowSpeed: bnbExp(0.5),
@@ -904,7 +904,7 @@ describe("Flywheel", () => {
       const tx = await send(comptroller, "claimAnnex", [a2]);
       const a2AccruedPost = await annexAccrued(comptroller, a2);
       const annBalancePost = await annBalance(comptroller, a2);
-      expect(tx.gasUsed).toBeLessThan(500000);
+      expect(tx.gasUsed).toBeLessThan(570000);
       expect(supplySpeed).toEqualNumber(annexRate);
       expect(borrowSpeed).toEqualNumber(annexRate);
       expect(a2AccruedPre).toEqualNumber(0);
