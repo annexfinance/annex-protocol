@@ -264,6 +264,19 @@ async function claimAnnex(world: World, from: string, comptroller: Comptroller, 
   return world;
 }
 
+async function grantANN(world: World, from: string, comptroller: Comptroller, recipient: string, amount: NumberA): Promise<World> {
+  let invokation = await invoke(world, comptroller.methods._grantANN(recipient, amount.encode()), from, ComptrollerErrorReporter);
+
+  world = addAction(
+    world,
+    `${amount.show()} ann granted to ${recipient}`,
+    invokation
+  );
+
+  return world;
+}
+
+
 async function setAnnexRate(world: World, from: string, comptroller: Comptroller, rate: NumberA): Promise<World> {
   let invokation = await invoke(world, comptroller.methods._setAnnexRate(rate.encode()), from, ComptrollerErrorReporter);
 

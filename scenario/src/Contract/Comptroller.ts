@@ -50,6 +50,7 @@ interface ComptrollerMethods {
   annexSupplySpeeds(string): Callable<string>
   annexBorrowSpeeds(string): Callable<string>
   claimAnnex(string): Sendable<void>
+  _grantANN(account: string, encodedNumber): Sendable<void>
   _setAnnexRate(encodedNumber): Sendable<void>
   _setAnnexSpeed(aToken: string, newSupplySpeed: encodedNumber, newBorrowSpeed: encodedNumber): Sendable<void>
   mintedXAIs(string): Callable<number>

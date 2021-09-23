@@ -45,7 +45,7 @@ Macro GrantsComptroller
 Macro InitSpeeds
     Prep Geoff 100e18 ZRX aZRX
     Mint Geoff 50e18 aZRX--tokenbalance = 50e18 / 2e9 = 2.5e10
-    Prep Coburn Some BAT vBAT
+    Prep Coburn Some BAT aBAT
     Mint Coburn 6e18 aBAT--tokenbalance = 6e18 / 2e9 = 3e9
     EnterMarkets Coburn aBAT
     Borrow Coburn 1e18 aZRX

@@ -67,6 +67,33 @@ describe("Flywheel", () => {
     });
   });
 
+  describe('_grantANN()', () => {
+    beforeEach(async () => {
+      await send(comptroller.ann, 'transfer', [comptroller._address, bnbUnsigned(50e18)], {from: root});
+    });
+
+    it('should award ann if called by admin', async () => {
+      const tx = await send(comptroller, '_grantANN', [a1, 100]);
+      expect(tx).toHaveLog('AnnexGranted', {
+        recipient: a1,
+        amount: 100
+      });
+    });
+
+    it('should revert if not called by admin', async () => {
+      await expect(
+        send(comptroller, '_grantANN', [a1, 100], {from: a1})
+      ).rejects.toRevert('revert only admin can grant ann');
+    });
+
+    it('should revert if insufficient ann', async () => {
+      await expect(
+        send(comptroller, '_grantANN', [a1, bnbUnsigned(1e20)])
+      ).rejects.toRevert('revert insufficient ann for grant');
+    });
+  });
+
+
   describe("getAnnexMarkets()", () => {
     it("should return the annex markets", async () => {
       for (let mkt of [aLOW, aREP, aZRX]) {
@@ -173,7 +200,7 @@ describe("Flywheel", () => {
     });
   });
 
-  it("should correctly set differing XVS supply and borrow speeds", async () => {
+  it("should correctly set differing ANN supply and borrow speeds", async () => {
     const desiredAnnexSupplySpeed = 3;
     const desiredAnnexBorrowSpeed = 20;
     const tx = await send(comptroller, "_setAnnexSpeed", [
@@ -223,7 +250,7 @@ describe("Flywheel", () => {
       { from: root }
     );
 
-    // Set XVS speeds to 0 while we setup
+    // Set ann speeds to 0 while we setup
     await send(comptroller, "_setAnnexSpeed", [aLOW._address, 0, 0]);
     await send(comptroller, "_setAnnexSpeed", [aUSD._address, 0, 0]);
 
@@ -235,25 +262,25 @@ describe("Flywheel", () => {
     await enterMarkets([aUSD], a1);
     expect(await quickBorrow(aLOW, a1, borrowAmount)).toSucceed(); // a1 is the borrower
 
-    // Initialize XVS speeds
+    // Initialize ann speeds
     await send(comptroller, "_setAnnexSpeed", [
       aLOW._address,
       annexSupplySpeed,
       annexBorrowSpeed,
     ]);
 
-    // Get initial XVS balances
+    // Get initial ann balances
     const a1TotalAnnexPre = await totalAnnexAccrued(comptroller, a1);
     const a2TotalAnnexPre = await totalAnnexAccrued(comptroller, a2);
 
-    // Start off with no XVS accrued and no XVS balance
+    // Start off with no ann accrued and no ann balance
     expect(a1TotalAnnexPre).toEqualNumber(0);
     expect(a2TotalAnnexPre).toEqualNumber(0);
 
     // Fast forward blocks
     await fastForward(comptroller, deltaBlocks);
 
-    // Accrue XVS
+    // Accrue ann
     await send(comptroller, "claimAnnex", [
       [a1, a2],
       [aLOW._address],
@@ -261,7 +288,7 @@ describe("Flywheel", () => {
       true,
     ]);
 
-    // Get accrued XVS balances
+    // Get accrued ann balances
     const a1TotalAnnexPost = await totalAnnexAccrued(comptroller, a1);
     const a2TotalAnnexPost = await totalAnnexAccrued(comptroller, a2);
 
@@ -289,7 +316,7 @@ describe("Flywheel", () => {
     });
   });
 
-  it("should accrue XVS correctly with only borrow-side rewards", async () => {
+  it("should accrue ANN correctly with only borrow-side rewards", async () => {
     await checkAccrualsBorrowAndSupply({
       annexSupplySpeed: 0,
       annexBorrowSpeed: bnbExp(0.5),
@@ -904,7 +931,7 @@ describe("Flywheel", () => {
       const tx = await send(comptroller, "claimAnnex", [a2]);
       const a2AccruedPost = await annexAccrued(comptroller, a2);
       const annBalancePost = await annBalance(comptroller, a2);
-      expect(tx.gasUsed).toBeLessThan(570000);
+      expect(tx.gasUsed).toBeLessThan(600000);
       expect(supplySpeed).toEqualNumber(annexRate);
       expect(borrowSpeed).toEqualNumber(annexRate);
       expect(a2AccruedPre).toEqualNumber(0);
