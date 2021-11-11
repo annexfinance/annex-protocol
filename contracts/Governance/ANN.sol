@@ -205,7 +205,7 @@ contract ANN is Ownable {
     constructor(address account) public {
         EpochConfig memory newEpochConfig = EpochConfig(
             0,
-            24 * 60 * 60 / 3, // 1 day blocks in BSC
+            24 * 60 * 60 / 6, // 1 day blocks in Cronos
             20 // 0.2% ROI increase per epoch
         );
         epochConfigs.push(newEpochConfig);

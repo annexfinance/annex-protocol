@@ -37,10 +37,12 @@ contract AnnexPriceOracle is PriceOracle {
     }
 
     function getUnderlyingPrice(AToken aToken) public view returns (uint) {
-        if (compareStrings(aToken.symbol(), "aBNB")) {
-            IStdReference.ReferenceData memory data = ref.getReferenceData("BNB", "USD");
+        if (compareStrings(aToken.symbol(), "aCRO")) {
+            IStdReference.ReferenceData memory data = ref.getReferenceData("CRO", "USD");
             return data.rate;
         }else if (compareStrings(aToken.symbol(), "ANN")) {
+            return prices[address(aToken)];
+        } else if (compareStrings(aToken.symbol(), "aTCRO")) {
             return prices[address(aToken)];
         } else {
             uint256 price;
@@ -68,9 +70,13 @@ contract AnnexPriceOracle is PriceOracle {
 
     function setUnderlyingPrice(AToken aToken, uint underlyingPriceMantissa) public {
         require(msg.sender == admin, "only admin can set underlying price");
-        address asset = address(ABep20(address(aToken)).underlying());
-        emit PricePosted(asset, prices[asset], underlyingPriceMantissa, underlyingPriceMantissa);
-        prices[asset] = underlyingPriceMantissa;
+        if (!compareStrings(aToken.symbol(), "aTCRO")) {
+            address asset = address(ABep20(address(aToken)).underlying());
+            emit PricePosted(asset, prices[asset], underlyingPriceMantissa, underlyingPriceMantissa);
+            prices[asset] = underlyingPriceMantissa;
+        } else {
+            prices[address(aToken)] = underlyingPriceMantissa;
+        }
     }
 
     function setDirectPrice(address asset, uint price) public {
