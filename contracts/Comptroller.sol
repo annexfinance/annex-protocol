@@ -1264,6 +1264,7 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
         Double memory borrowerIndex = Double({mantissa: annexBorrowerIndex[aToken][borrower]});
         annexBorrowerIndex[aToken][borrower] = borrowIndex.mantissa;
 
+
         if (borrowerIndex.mantissa > 0) {
             Double memory deltaIndex = sub_(borrowIndex, borrowerIndex);
             uint borrowerAmount = div_(AToken(aToken).borrowBalanceStored(borrower), marketBorrowIndex);
