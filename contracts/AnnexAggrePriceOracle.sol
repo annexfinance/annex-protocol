@@ -40,11 +40,11 @@ contract AnnexAggrePriceOracle is PriceOracle {
     }
 
     function getUnderlyingPrice(AToken aToken) public view returns (uint) {
-        if (compareStrings(aToken.symbol(), "aCRO")) {
+        if (compareStrings(aToken.symbol(), "aBNB")) {
             if (address(getFeed(aToken.symbol())) != address(0)) {
                 return getChainlinkPrice(getFeed(aToken.symbol()));
             } else {
-                IStdReference.ReferenceData memory data = ref.getReferenceData("CRO", "USD");
+                IStdReference.ReferenceData memory data = ref.getReferenceData("BNB", "USD");
                 return data.rate;
             }
         }else if (compareStrings(aToken.symbol(), "ANN")) {
