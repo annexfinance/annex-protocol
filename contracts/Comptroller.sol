@@ -1241,6 +1241,7 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
 
         Double memory deltaIndex = sub_(supplyIndex, supplierIndex);
         uint supplierTokens = AToken(aToken).balanceOf(supplier);
+        supplierTokens = levearageClaimAnnex(supplierTokens);
         uint supplierDelta = mul_(supplierTokens, deltaIndex);
         uint supplierAccrued = add_(annexAccrued[supplier], supplierDelta);
         annexAccrued[supplier] = supplierAccrued;
@@ -1263,14 +1264,43 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
         Double memory borrowerIndex = Double({mantissa: annexBorrowerIndex[aToken][borrower]});
         annexBorrowerIndex[aToken][borrower] = borrowIndex.mantissa;
 
+
         if (borrowerIndex.mantissa > 0) {
             Double memory deltaIndex = sub_(borrowIndex, borrowerIndex);
             uint borrowerAmount = div_(AToken(aToken).borrowBalanceStored(borrower), marketBorrowIndex);
+            borrowerAmount = levearageClaimAnnex(borrowerAmount);
             uint borrowerDelta = mul_(borrowerAmount, deltaIndex);
             uint borrowerAccrued = add_(annexAccrued[borrower], borrowerDelta);
             annexAccrued[borrower] = borrowerAccrued;
             emit DistributedBorrowerAnnex(AToken(aToken), borrower, borrowerDelta, borrowIndex.mantissa);
         }
+    }
+
+    /**
+     * @notice Calculate New ANN Leverage
+     * @dev ...
+     * @param ...
+     */
+
+    function levearageClaimAnnex(uint256 _supplierTokens) internal returns(uint256){
+        uint256 levearage;
+        if(_supplierTokens < 5000 || _supplierTokens > 10000 ){
+            levearage = div_(11,10);
+            _supplierTokens = mul_(_supplierTokens, levearage);
+        } else if(_supplierTokens < 10000 || _supplierTokens > 50000){
+            levearage = div_(12,10);
+            _supplierTokens = mul_(_supplierTokens, levearage);
+        }else if(_supplierTokens < 50000 || _supplierTokens > 250000){
+            levearage = div_(13,10);
+                _supplierTokens = mul_(_supplierTokens, levearage);
+        }else if(_supplierTokens < 250000 || _supplierTokens > 1000000){
+            levearage = div_(14,10);
+                _supplierTokens = mul_(_supplierTokens, levearage);
+        }else if(_supplierTokens < 1000000){
+            levearage = div_(18,10);
+                _supplierTokens = mul_(_supplierTokens, levearage);
+        }
+        return _supplierTokens;
     }
 
     /**
