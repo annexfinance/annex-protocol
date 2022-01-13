@@ -57,7 +57,7 @@ contract AnnexAggrePriceOracle is PriceOracle {
                 price = prices[address(token)];
             } else {
                 if (address(getFeed(token.symbol())) != address(0)) {
-                    return price = getChainlinkPrice(getFeed(token.symbol()));
+                    price = getChainlinkPrice(getFeed(token.symbol()));
                 } else {
                     IStdReference.ReferenceData memory data = ref.getReferenceData(token.symbol(), "USD");
                     price = data.rate;
