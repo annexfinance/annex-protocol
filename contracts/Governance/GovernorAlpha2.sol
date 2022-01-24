@@ -1,7 +1,7 @@
 pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
-contract GovernorAlpha {
+contract GovernorAlpha2 {
     /// @notice The name of this contract
     string public constant name = "Annex Governor Alpha";
 
@@ -12,13 +12,13 @@ contract GovernorAlpha {
     function proposalThreshold() public pure returns (uint) { return 10000000e18; } // 10,000,000 = 1% of ANN
 
     /// @notice The maximum number of actions that can be included in a proposal
-    function proposalMaxOperations() public pure returns (uint) { return 10; } // 10 actions
+    function proposalMaxOperations() public pure returns (uint) { return 30; } // 30 actions
 
     /// @notice The delay before voting on a proposal may take place, once proposed
     function votingDelay() public pure returns (uint) { return 1; } // 1 block
 
     /// @notice The duration of voting on a proposal, in blocks
-    function votingPeriod() public pure returns (uint) { return 60 * 60 * 24 * 3 / 3; } // ~3 days in blocks (assuming 3s blocks)
+    function votingPeriod() public pure returns (uint) { return 60 * 60 * 24 * 3 / 6; } // ~3 days in blocks (assuming 3s blocks)
 
     /// @notice The address of the Annex Protocol Timelock
     TimelockInterface public timelock;
@@ -127,10 +127,11 @@ contract GovernorAlpha {
     /// @notice An event emitted when a proposal has been executed in the Timelock
     event ProposalExecuted(uint id);
 
-    constructor(address timelock_, address ann_, address guardian_) public {
+    constructor(address timelock_, address ann_, address guardian_, uint256 latestProposalId_) public {
         timelock = TimelockInterface(timelock_);
         ann = ANNInterface(ann_);
         guardian = guardian_;
+        proposalCount = latestProposalId_;
     }
 
     function propose(address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description) public returns (uint) {
@@ -189,12 +190,12 @@ contract GovernorAlpha {
         timelock.queueTransaction(target, value, signature, data, eta);
     }
 
-    function execute(uint proposalId) public payable {
+    function execute(uint proposalId) public {
         require(state(proposalId) == ProposalState.Queued, "GovernorAlpha::execute: proposal can only be executed if it is queued");
         Proposal storage proposal = proposals[proposalId];
         proposal.executed = true;
         for (uint i = 0; i < proposal.targets.length; i++) {
-            timelock.executeTransaction.value(proposal.values[i])(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
+            timelock.executeTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
         }
         emit ProposalExecuted(proposalId);
     }
