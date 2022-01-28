@@ -1105,12 +1105,12 @@ contract AToken is ATokenInterface, Exponential, TokenErrorReporter {
          */
         (vars.mathErr, vars.borrowerTokensNew) = subUInt(accountTokens[borrower], seizeTokens);
         if (vars.mathErr != MathError.NO_ERROR) {
-            return failOpaque(Error.MATH_ERROR, FailureInfo.LIQUIDATE_SEIZE_BALANCE_DECREMENT_FAILED, uint(mathErr));
+            return failOpaque(Error.MATH_ERROR, FailureInfo.LIQUIDATE_SEIZE_BALANCE_DECREMENT_FAILED, uint(vars.mathErr));
         }
         vars.protocolSeizeTokens = mul_(seizeTokens, Exp({mantissa: protocolSeizeShareMantissa}));
         vars.liquidatorSeizeTokens = sub_(seizeTokens, vars.protocolSeizeTokens);
 
-        vars.mathErr, vars.exchangeRateMantissa) = exchangeRateStoredInternal();
+        (vars.mathErr, vars.exchangeRateMantissa) = exchangeRateStoredInternal();
         require(vars.mathErr == MathError.NO_ERROR, "exchange rate math error");
 
         vars.protocolSeizeAmount = mul_ScalarTruncate(Exp({mantissa: vars.exchangeRateMantissa}), vars.protocolSeizeTokens);
@@ -1119,9 +1119,6 @@ contract AToken is ATokenInterface, Exponential, TokenErrorReporter {
         vars.totalSupplyNew = sub_(totalSupply, vars.protocolSeizeTokens);
 
         (vars.mathErr, vars.liquidatorTokensNew) = addUInt(accountTokens[liquidator], vars.liquidatorSeizeTokens);
-
-
-        (vars.mathErr, liquidatorTokensNew) = addUInt(accountTokens[liquidator], vars.liquidatorSeizeTokens);
         if (vars.mathErr != MathError.NO_ERROR) {
             return failOpaque(Error.MATH_ERROR, FailureInfo.LIQUIDATE_SEIZE_BALANCE_INCREMENT_FAILED, uint(vars.mathErr));
         }
@@ -1133,8 +1130,8 @@ contract AToken is ATokenInterface, Exponential, TokenErrorReporter {
         /* We write the previously calculated values into storage */
         totalReserves = vars.totalReservesNew;
         totalSupply = vars.totalSupplyNew;
-        accountTokens[borrower] = borrowerTokensNew;
-        accountTokens[liquidator] = liquidatorTokensNew;
+        accountTokens[borrower] = vars.borrowerTokensNew;
+        accountTokens[liquidator] = vars.liquidatorTokensNew;
 
         /* Emit a Transfer event */
         emit Transfer(borrower, liquidator, seizeTokens);
