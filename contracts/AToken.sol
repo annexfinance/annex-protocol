@@ -8,6 +8,7 @@ import "./EIP20Interface.sol";
 import "./EIP20NonStandardInterface.sol";
 import "./InterestRateModel.sol";
 
+
 /**
  * @title Annex's AToken Contract
  * @notice Abstract base for ATokens
