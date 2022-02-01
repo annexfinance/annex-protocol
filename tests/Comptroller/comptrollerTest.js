@@ -141,43 +141,43 @@ describe('Comptroller', () => {
   //   });
   // });
 
-  // describe('_supportMarket', () => {
-  //   it("fails if not called by admin", async () => {
-  //     const aToken = await makeAToken(root);
-  //     expect(
-  //       await send(aToken.comptroller, '_supportMarket', [aToken._address], {from: accounts[0]})
-  //     ).toHaveTrollFailure('UNAUTHORIZED', 'SUPPORT_MARKET_OWNER_CHECK');
-  //   });
+  describe('_supportMarket', () => {
+    it("fails if not called by admin", async () => {
+      const aToken = await makeAToken(root);
+      expect(
+        await send(aToken.comptroller, '_supportMarket', [aToken._address], {from: accounts[0]})
+      ).toHaveTrollFailure('UNAUTHORIZED', 'SUPPORT_MARKET_OWNER_CHECK');
+    });
 
-  //   it("fails if asset is not a AToken", async () => {
-  //     const comptroller = await makeComptroller()
-  //     const asset = await makeToken(root);
-  //     await expect(send(comptroller, '_supportMarket', [asset._address])).rejects.toRevert();
-  //   });
+    it("fails if asset is not a AToken", async () => {
+      const comptroller = await makeComptroller()
+      const asset = await makeToken(root);
+      await expect(send(comptroller, '_supportMarket', [asset._address])).rejects.toRevert();
+    });
 
-  //   it("succeeds and sets market", async () => {
-  //     const aToken = await makeAToken();
-  //     const result = await send(aToken.comptroller, '_supportMarket', [aToken._address]);
-  //     expect(result).toHaveLog('MarketListed', {aToken: aToken._address});
-  //   });
+    it("succeeds and sets market", async () => {
+      const aToken = await makeAToken();
+      const result = await send(aToken.comptroller, '_supportMarket', [aToken._address]);
+      expect(result).toHaveLog('MarketListed', {aToken: aToken._address});
+    });
 
-  //   it("cannot list a market a second time", async () => {
-  //     const aToken = await makeAToken();
-  //     const result1 = await send(aToken.comptroller, '_supportMarket', [aToken._address]);
-  //     const result2 = await send(aToken.comptroller, '_supportMarket', [aToken._address]);
-  //     expect(result1).toHaveLog('MarketListed', {aToken: aToken._address});
-  //     expect(result2).toHaveTrollFailure('MARKET_ALREADY_LISTED', 'SUPPORT_MARKET_EXISTS');
-  //   });
+    it("cannot list a market a second time", async () => {
+      const aToken = await makeAToken();
+      const result1 = await send(aToken.comptroller, '_supportMarket', [aToken._address]);
+      const result2 = await send(aToken.comptroller, '_supportMarket', [aToken._address]);
+      expect(result1).toHaveLog('MarketListed', {aToken: aToken._address});
+      expect(result2).toHaveTrollFailure('MARKET_ALREADY_LISTED', 'SUPPORT_MARKET_EXISTS');
+    });
 
-  //   it("can list two different markets", async () => {
-  //     const aToken1 = await makeAToken();
-  //     const aToken2 = await makeAToken({comptroller: aToken1.comptroller});
-  //     const result1 = await send(aToken1.comptroller, '_supportMarket', [aToken1._address]);
-  //     const result2 = await send(aToken1.comptroller, '_supportMarket', [aToken2._address]);
-  //     expect(result1).toHaveLog('MarketListed', {aToken: aToken1._address});
-  //     expect(result2).toHaveLog('MarketListed', {aToken: aToken2._address});
-  //   });
-  // });
+    it("can list two different markets", async () => {
+      const aToken1 = await makeAToken();
+      const aToken2 = await makeAToken({comptroller: aToken1.comptroller});
+      const result1 = await send(aToken1.comptroller, '_supportMarket', [aToken1._address]);
+      const result2 = await send(aToken1.comptroller, '_supportMarket', [aToken2._address]);
+      expect(result1).toHaveLog('MarketListed', {aToken: aToken1._address});
+      expect(result2).toHaveLog('MarketListed', {aToken: aToken2._address});
+    });
+  });
 
   describe('redeemVerify', () => {
     it('should allow you to redeem 0 underlying for 0 tokens', async () => {
