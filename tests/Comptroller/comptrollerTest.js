@@ -105,41 +105,41 @@ describe('Comptroller', () => {
     });
   });
 
-  // describe('_setCollateralFactor', () => {
-  //   const half = bnbMantissa(0.5);
-  //   const one = bnbMantissa(1);
+  describe('_setCollateralFactor', () => {
+    const half = bnbMantissa(0.5);
+    const one = bnbMantissa(1);
 
-  //   it("fails if not called by admin", async () => {
-  //     const aToken = await makeAToken();
-  //     expect(
-  //       await send(aToken.comptroller, '_setCollateralFactor', [aToken._address, half], {from: accounts[0]})
-  //     ).toHaveTrollFailure('UNAUTHORIZED', 'SET_COLLATERAL_FACTOR_OWNER_CHECK');
-  //   });
+    it("fails if not called by admin", async () => {
+      const aToken = await makeAToken();
+      expect(
+        await send(aToken.comptroller, '_setCollateralFactor', [aToken._address, half], {from: accounts[0]})
+      ).toHaveTrollFailure('UNAUTHORIZED', 'SET_COLLATERAL_FACTOR_OWNER_CHECK');
+    });
 
-  //   it("fails if asset is not listed", async () => {
-  //     const aToken = await makeAToken();
-  //     expect(
-  //       await send(aToken.comptroller, '_setCollateralFactor', [aToken._address, half])
-  //     ).toHaveTrollFailure('MARKET_NOT_LISTED', 'SET_COLLATERAL_FACTOR_NO_EXISTS');
-  //   });
+    it("fails if asset is not listed", async () => {
+      const aToken = await makeAToken();
+      expect(
+        await send(aToken.comptroller, '_setCollateralFactor', [aToken._address, half])
+      ).toHaveTrollFailure('MARKET_NOT_LISTED', 'SET_COLLATERAL_FACTOR_NO_EXISTS');
+    });
 
-  //   it("fails if factor is set without an underlying price", async () => {
-  //     const aToken = await makeAToken({supportMarket: true});
-  //     expect(
-  //       await send(aToken.comptroller, '_setCollateralFactor', [aToken._address, half])
-  //     ).toHaveTrollFailure('PRICE_ERROR', 'SET_COLLATERAL_FACTOR_WITHOUT_PRICE');
-  //   });
+    it("fails if factor is set without an underlying price", async () => {
+      const aToken = await makeAToken({supportMarket: true});
+      expect(
+        await send(aToken.comptroller, '_setCollateralFactor', [aToken._address, half])
+      ).toHaveTrollFailure('PRICE_ERROR', 'SET_COLLATERAL_FACTOR_WITHOUT_PRICE');
+    });
 
-  //   it("succeeds and sets market", async () => {
-  //     const aToken = await makeAToken({supportMarket: true, underlyingPrice: 1});
-  //     const result = await send(aToken.comptroller, '_setCollateralFactor', [aToken._address, half]);
-  //     expect(result).toHaveLog('NewCollateralFactor', {
-  //       aToken: aToken._address,
-  //       oldCollateralFactorMantissa: '0',
-  //       newCollateralFactorMantissa: half.toString()
-  //     });
-  //   });
-  // });
+    it("succeeds and sets market", async () => {
+      const aToken = await makeAToken({supportMarket: true, underlyingPrice: 1});
+      const result = await send(aToken.comptroller, '_setCollateralFactor', [aToken._address, half]);
+      expect(result).toHaveLog('NewCollateralFactor', {
+        aToken: aToken._address,
+        oldCollateralFactorMantissa: '0',
+        newCollateralFactorMantissa: half.toString()
+      });
+    });
+  });
 
   describe('_supportMarket', () => {
     it("fails if not called by admin", async () => {
