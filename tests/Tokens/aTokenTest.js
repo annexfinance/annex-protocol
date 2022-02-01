@@ -56,13 +56,13 @@ describe('AToken', function () {
     });
   });
 
-  // describe('balanceOfUnderlying', () => {
-  //   it("has an underlying balance", async () => {
-  //     const aToken = await makeAToken({ supportMarket: true, exchangeRate: 2 });
-  //     await send(aToken, 'harnessSetBalance', [root, 100]);
-  //     expect(await call(aToken, 'balanceOfUnderlying', [root])).toEqualNumber(200);
-  //   });
-  // });
+  describe('balanceOfUnderlying', () => {
+    it("has an underlying balance", async () => {
+      const aToken = await makeAToken({ supportMarket: true, exchangeRate: 2 });
+      await send(aToken, 'harnessSetBalance', [root, 100]);
+      expect(await call(aToken, 'balanceOfUnderlying', [root])).toEqualNumber(200);
+    });
+  });
 
   // describe('borrowRatePerBlock', () => {
   //   it("has a borrow rate", async () => {
