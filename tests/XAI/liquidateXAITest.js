@@ -198,38 +198,38 @@ describe('XAIController', function () {
     });
   });
 
-  describe('seize', () => {
-    // XXX verify callers are properly checked
+  // describe('seize', () => {
+  //   // XXX verify callers are properly checked
 
-    it("fails if seize is not allowed", async () => {
-      await send(comptroller, 'setSeizeAllowed', [false]);
-      expect(await seize(aTokenCollateral, liquidator, borrower, seizeTokens)).toHaveTrollReject('LIQUIDATE_SEIZE_COMPTROLLER_REJECTION', 'MATH_ERROR');
-    });
+  //   it("fails if seize is not allowed", async () => {
+  //     await send(comptroller, 'setSeizeAllowed', [false]);
+  //     expect(await seize(aTokenCollateral, liquidator, borrower, seizeTokens)).toHaveTrollReject('LIQUIDATE_SEIZE_COMPTROLLER_REJECTION', 'MATH_ERROR');
+  //   });
 
-    it("fails if aTokenBalances[borrower] < amount", async () => {
-      await setBalance(aTokenCollateral, borrower, 1);
-      expect(await seize(aTokenCollateral, liquidator, borrower, seizeTokens)).toHaveTokenMathFailure('LIQUIDATE_SEIZE_BALANCE_DECREMENT_FAILED', 'INTEGER_UNDERFLOW');
-    });
+  //   it("fails if aTokenBalances[borrower] < amount", async () => {
+  //     await setBalance(aTokenCollateral, borrower, 1);
+  //     expect(await seize(aTokenCollateral, liquidator, borrower, seizeTokens)).toHaveTokenMathFailure('LIQUIDATE_SEIZE_BALANCE_DECREMENT_FAILED', 'INTEGER_UNDERFLOW');
+  //   });
 
-    it("fails if aTokenBalances[liquidator] overflows", async () => {
-      await setBalance(aTokenCollateral, liquidator, '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
-      expect(await seize(aTokenCollateral, liquidator, borrower, seizeTokens)).toHaveTokenMathFailure('LIQUIDATE_SEIZE_BALANCE_INCREMENT_FAILED', 'INTEGER_OVERFLOW');
-    });
+  //   it("fails if aTokenBalances[liquidator] overflows", async () => {
+  //     await setBalance(aTokenCollateral, liquidator, '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+  //     expect(await seize(aTokenCollateral, liquidator, borrower, seizeTokens)).toHaveTokenMathFailure('LIQUIDATE_SEIZE_BALANCE_INCREMENT_FAILED', 'INTEGER_OVERFLOW');
+  //   });
 
-    it("succeeds, updates balances, and emits Transfer event", async () => {
-      const beforeBalances = await getBalancesWithXAI(xai, [aTokenCollateral], [liquidator, borrower]);
-      const result = await seize(aTokenCollateral, liquidator, borrower, seizeTokens);
-      const afterBalances = await getBalancesWithXAI(xai, [aTokenCollateral], [liquidator, borrower]);
-      expect(result).toSucceed();
-      expect(result).toHaveLog('Transfer', {
-        from: borrower,
-        to: liquidator,
-        amount: seizeTokens.toString()
-      });
-      expect(afterBalances).toEqual(await adjustBalancesWithXAI(beforeBalances, [
-        [aTokenCollateral, liquidator, 'tokens', seizeTokens],
-        [aTokenCollateral, borrower, 'tokens', -seizeTokens]
-      ], xai));
-    });
-  });
+  //   it("succeeds, updates balances, and emits Transfer event", async () => {
+  //     const beforeBalances = await getBalancesWithXAI(xai, [aTokenCollateral], [liquidator, borrower]);
+  //     const result = await seize(aTokenCollateral, liquidator, borrower, seizeTokens);
+  //     const afterBalances = await getBalancesWithXAI(xai, [aTokenCollateral], [liquidator, borrower]);
+  //     expect(result).toSucceed();
+  //     expect(result).toHaveLog('Transfer', {
+  //       from: borrower,
+  //       to: liquidator,
+  //       amount: seizeTokens.toString()
+  //     });
+  //     expect(afterBalances).toEqual(await adjustBalancesWithXAI(beforeBalances, [
+  //       [aTokenCollateral, liquidator, 'tokens', seizeTokens],
+  //       [aTokenCollateral, borrower, 'tokens', -seizeTokens]
+  //     ], xai));
+  //   });
+  // });
 });
