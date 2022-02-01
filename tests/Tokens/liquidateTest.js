@@ -55,11 +55,17 @@ async function seize(aToken, liquidator, borrower, seizeAmount) {
 describe('AToken', function () {
   let root, liquidator, borrower, accounts;
   let aToken, aTokenCollateral;
+  const protocolSeizeShareMantissa = 2.8e16; // 2.8%
+  const exchangeRate = etherExp(.2);	
+  const protocolShareTokens = seizeTokens.multipliedBy(protocolSeizeShareMantissa).dividedBy(etherExp(1));
+  const liquidatorShareTokens = seizeTokens.minus(protocolShareTokens);
+  const addReservesAmount = protocolShareTokens.multipliedBy(exchangeRate).dividedBy(etherExp(1));
 
   beforeEach(async () => {
     [root, liquidator, borrower, ...accounts] = saddle.accounts;
     aToken = await makeAToken({comptrollerOpts: {kind: 'bool'}});
     aTokenCollateral = await makeAToken({comptroller: aToken.comptroller});
+    expect(await send(aTokenCollateral, 'harnessSetExchangeRate', [exchangeRate])).toSucceed();
   });
 
   beforeEach(async () => {
@@ -159,13 +165,20 @@ describe('AToken', function () {
         to: liquidator,
         amount: seizeTokens.toString()
       });
+      expect(result).toHaveLog(['Transfer', 2], {
+        from: borrower,
+        to: aTokenCollateral._address,
+        amount: protocolShareTokens.toString()
+      });
       expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
         [aToken, 'cash', repayAmount],
         [aToken, 'borrows', -repayAmount],
         [aToken, liquidator, 'cash', -repayAmount],
         [aTokenCollateral, liquidator, 'tokens', seizeTokens],
         [aToken, borrower, 'borrows', -repayAmount],
-        [aTokenCollateral, borrower, 'tokens', -seizeTokens]
+        [aTokenCollateral, borrower, 'tokens', -seizeTokens],
+        [aTokenCollateral, aTokenCollateral._address, 'reserves', addReservesAmount],
+        [aTokenCollateral, aTokenCollateral._address, 'tokens', -protocolShareTokens]
       ]));
     });
   });
@@ -199,7 +212,8 @@ describe('AToken', function () {
         [aTokenCollateral, liquidator, 'bnb', -gasCost],
         [aTokenCollateral, liquidator, 'tokens', seizeTokens],
         [aToken, borrower, 'borrows', -repayAmount],
-        [aTokenCollateral, borrower, 'tokens', -seizeTokens]
+        [aTokenCollateral, borrower, 'tokens', -seizeTokens],
+        [aTokenCollateral, aTokenCollateral._address, 'tokens', -protocolShareTokens], // total supply decreases
       ]));
     });
   });
@@ -232,9 +246,21 @@ describe('AToken', function () {
         to: liquidator,
         amount: seizeTokens.toString()
       });
+      expect(result).toHaveLog(['Transfer', 1], {
+        from: borrower,
+        to: aTokenCollateral._address,
+        amount: protocolShareTokens.toString()
+      });
+      expect(result).toHaveLog('ReservesAdded', {
+        benefactor: aTokenCollateral._address,
+        addAmount: addReservesAmount.toString(),
+        newTotalReserves: addReservesAmount.toString()
+      });
       expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
         [aTokenCollateral, liquidator, 'tokens', seizeTokens],
-        [aTokenCollateral, borrower, 'tokens', -seizeTokens]
+        [aTokenCollateral, borrower, 'tokens', -seizeTokens],
+        [aTokenCollateral, aTokenCollateral._address, 'reserves', addReservesAmount],
+        [aTokenCollateral, aTokenCollateral._address, 'tokens', -protocolShareTokens], // total supply decreases
       ]));
     });
   });
