@@ -56,23 +56,23 @@ async function liquidateXAI(xaicontroller, liquidator, borrower, repayAmount, aT
 //   return send(aToken, 'seize', [liquidator, borrower, seizeAmount]);
 // }
 
-// describe('XAIController', function () {
-//   let root, liquidator, borrower, accounts;
-//   let aTokenCollateral;
-//   let comptroller, xaicontroller, xai;
+describe('XAIController', function () {
+  let root, liquidator, borrower, accounts;
+  let aTokenCollateral;
+  let comptroller, xaicontroller, xai;
 
-//   beforeEach(async () => {
-//     [root, liquidator, borrower, ...accounts] = saddle.accounts;
-//     aTokenCollateral = await makeAToken({comptrollerOpts: {kind: 'bool'}});
-//     comptroller = aTokenCollateral.comptroller;
-//     xaicontroller = comptroller.xaicontroller;
-//     await send(comptroller, 'setLiquidateBorrowAllowed', [false]);
-//     xai = comptroller.xai;
-//   });
+  beforeEach(async () => {
+    [root, liquidator, borrower, ...accounts] = saddle.accounts;
+    aTokenCollateral = await makeAToken({comptrollerOpts: {kind: 'bool'}});
+    comptroller = aTokenCollateral.comptroller;
+    xaicontroller = comptroller.xaicontroller;
+    await send(comptroller, 'setLiquidateBorrowAllowed', [false]);
+    xai = comptroller.xai;
+  });
 
-//   beforeEach(async () => {
-//     await preLiquidateXAI(comptroller, xaicontroller, xai, liquidator, borrower, repayAmount, aTokenCollateral);
-//   });
+  beforeEach(async () => {
+    await preLiquidateXAI(comptroller, xaicontroller, xai, liquidator, borrower, repayAmount, aTokenCollateral);
+  });
 
 //   // describe('liquidateXAIFresh', () => {
 //   //   it("fails if comptroller tells it to", async () => {
@@ -168,7 +168,7 @@ async function liquidateXAI(xaicontroller, liquidator, borrower, repayAmount, aT
 //   //   });
 //   // });
 
-//   // describe('liquidateXAI', () => {
+  describe('liquidateXAI', () => {
 //   //   // it("emits a liquidation failure if borrowed asset interest accrual fails", async () => {
 //   //   //   await send(aToken.interestRateModel, 'setFailBorrowRate', [true]);
 //   //   //   await expect(liquidateXAI(xaicontroller, liquidator, borrower, repayAmount, aTokenCollateral)).rejects.toRevert("revert INTEREST_RATE_MODEL_ERROR");
@@ -231,5 +231,5 @@ async function liquidateXAI(xaicontroller, liquidator, borrower, repayAmount, aT
 //   //       [aTokenCollateral, borrower, 'tokens', -seizeTokens]
 //   //     ], xai));
 //   //   });
-//   // });
-// });
+  });
+});
