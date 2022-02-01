@@ -37,9 +37,9 @@ async function preLiquidate(aToken, liquidator, borrower, repayAmount, aTokenCol
   await preApprove(aToken, liquidator, repayAmount);
 }
 
-async function liquidateFresh(aToken, liquidator, borrower, repayAmount, aTokenCollateral) {
-  return send(aToken, 'harnessLiquidateBorrowFresh', [liquidator, borrower, repayAmount, aTokenCollateral._address]);
-}
+// async function liquidateFresh(aToken, liquidator, borrower, repayAmount, aTokenCollateral) {
+//   return send(aToken, 'harnessLiquidateBorrowFresh', [liquidator, borrower, repayAmount, aTokenCollateral._address]);
+// }
 
 async function liquidate(aToken, liquidator, borrower, repayAmount, aTokenCollateral) {
   // make sure to have a block delta so we accrue interest
