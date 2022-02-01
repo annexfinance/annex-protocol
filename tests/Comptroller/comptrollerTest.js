@@ -179,23 +179,23 @@ describe('Comptroller', () => {
   //   });
   // });
 
-  // describe('redeemVerify', () => {
-  //   it('should allow you to redeem 0 underlying for 0 tokens', async () => {
-  //     const comptroller = await makeComptroller();
-  //     const aToken = await makeAToken({comptroller: comptroller});
-  //     await call(comptroller, 'redeemVerify', [aToken._address, accounts[0], 0, 0]);
-  //   });
+  describe('redeemVerify', () => {
+    it('should allow you to redeem 0 underlying for 0 tokens', async () => {
+      const comptroller = await makeComptroller();
+      const aToken = await makeAToken({comptroller: comptroller});
+      await call(comptroller, 'redeemVerify', [aToken._address, accounts[0], 0, 0]);
+    });
 
-  //   it('should allow you to redeem 5 underlyig for 5 tokens', async () => {
-  //     const comptroller = await makeComptroller();
-  //     const aToken = await makeAToken({comptroller: comptroller});
-  //     await call(comptroller, 'redeemVerify', [aToken._address, accounts[0], 5, 5]);
-  //   });
+    it('should allow you to redeem 5 underlyig for 5 tokens', async () => {
+      const comptroller = await makeComptroller();
+      const aToken = await makeAToken({comptroller: comptroller});
+      await call(comptroller, 'redeemVerify', [aToken._address, accounts[0], 5, 5]);
+    });
 
-  //   it('should not allow you to redeem 5 underlying for 0 tokens', async () => {
-  //     const comptroller = await makeComptroller();
-  //     const aToken = await makeAToken({comptroller: comptroller});
-  //     await expect(call(comptroller, 'redeemVerify', [aToken._address, accounts[0], 5, 0])).rejects.toRevert("revert redeemTokens zero");
-  //   });
-  // })
+    it('should not allow you to redeem 5 underlying for 0 tokens', async () => {
+      const comptroller = await makeComptroller();
+      const aToken = await makeAToken({comptroller: comptroller});
+      await expect(call(comptroller, 'redeemVerify', [aToken._address, accounts[0], 5, 0])).rejects.toRevert("revert redeemTokens zero");
+    });
+  })
 });
