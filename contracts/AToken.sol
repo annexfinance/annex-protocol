@@ -1104,14 +1104,24 @@ contract AToken is ATokenInterface, Exponential, TokenErrorReporter {
          *  liquidatorTokensNew = accountTokens[liquidator] + seizeTokens
          */
          
-        (mathErr, borrowerTokensNew) = subUInt(accountTokens[borrower], seizeTokens);
-        if (mathErr != MathError.NO_ERROR) {
-            return failOpaque(Error.MATH_ERROR, FailureInfo.LIQUIDATE_SEIZE_BALANCE_DECREMENT_FAILED, uint(mathErr));
+        (vars.mathErr, vars.borrowerTokensNew) = subUInt(accountTokens[borrower], seizeTokens);
+        if (vars.mathErr != MathError.NO_ERROR) {
+            return failOpaque(Error.MATH_ERROR, FailureInfo.LIQUIDATE_SEIZE_BALANCE_DECREMENT_FAILED, uint(vars.mathErr));
         }
+        vars.protocolSeizeTokens = mul_(seizeTokens, Exp({mantissa: protocolSeizeShareMantissa}));
+        vars.liquidatorSeizeTokens = sub_(seizeTokens, vars.protocolSeizeTokens);
 
-        (mathErr, liquidatorTokensNew) = addUInt(accountTokens[liquidator], seizeTokens);
-        if (mathErr != MathError.NO_ERROR) {
-            return failOpaque(Error.MATH_ERROR, FailureInfo.LIQUIDATE_SEIZE_BALANCE_INCREMENT_FAILED, uint(mathErr));
+        (vars.mathErr, vars.exchangeRateMantissa) = exchangeRateStoredInternal();
+        require(vars.mathErr == MathError.NO_ERROR, "exchange rate math error");
+
+        vars.protocolSeizeAmount = mul_ScalarTruncate(Exp({mantissa: vars.exchangeRateMantissa}), vars.protocolSeizeTokens);
+
+        vars.totalReservesNew = add_(totalReserves, vars.protocolSeizeAmount);
+        vars.totalSupplyNew = sub_(totalSupply, vars.protocolSeizeTokens);
+
+        (vars.mathErr, vars.liquidatorTokensNew) = addUInt(accountTokens[liquidator], vars.liquidatorSeizeTokens);
+        if (vars.mathErr != MathError.NO_ERROR) {
+            return failOpaque(Error.MATH_ERROR, FailureInfo.LIQUIDATE_SEIZE_BALANCE_INCREMENT_FAILED, uint(vars.mathErr));
         }
 
         /////////////////////////
@@ -1119,55 +1129,19 @@ contract AToken is ATokenInterface, Exponential, TokenErrorReporter {
         // (No safe failures beyond this point)
 
         /* We write the previously calculated values into storage */
-        accountTokens[borrower] = borrowerTokensNew;
-        accountTokens[liquidator] = liquidatorTokensNew;
+        totalReserves = vars.totalReservesNew;
+        totalSupply = vars.totalSupplyNew;
+        accountTokens[borrower] = vars.borrowerTokensNew;
+        accountTokens[liquidator] = vars.liquidatorTokensNew;
 
         /* Emit a Transfer event */
         emit Transfer(borrower, liquidator, seizeTokens);
-
+        emit Transfer(borrower, address(this), vars.protocolSeizeTokens);
+        emit ReservesAdded(address(this), vars.protocolSeizeAmount, vars.totalReservesNew);
         /* We call the defense hook */
-        comptroller.seizeVerify(address(this), seizerToken, liquidator, borrower, seizeTokens);
+        // comptroller.seizeVerify(address(this), seizerToken, liquidator, borrower, seizeTokens);
 
         return uint(Error.NO_ERROR);
-
-        // (vars.mathErr, vars.borrowerTokensNew) = subUInt(accountTokens[borrower], seizeTokens);
-        // if (vars.mathErr != MathError.NO_ERROR) {
-        //     return failOpaque(Error.MATH_ERROR, FailureInfo.LIQUIDATE_SEIZE_BALANCE_DECREMENT_FAILED, uint(vars.mathErr));
-        // }
-        // vars.protocolSeizeTokens = mul_(seizeTokens, Exp({mantissa: protocolSeizeShareMantissa}));
-        // vars.liquidatorSeizeTokens = sub_(seizeTokens, vars.protocolSeizeTokens);
-
-        // (vars.mathErr, vars.exchangeRateMantissa) = exchangeRateStoredInternal();
-        // require(vars.mathErr == MathError.NO_ERROR, "exchange rate math error");
-
-        // vars.protocolSeizeAmount = mul_ScalarTruncate(Exp({mantissa: vars.exchangeRateMantissa}), vars.protocolSeizeTokens);
-
-        // vars.totalReservesNew = add_(totalReserves, vars.protocolSeizeAmount);
-        // vars.totalSupplyNew = sub_(totalSupply, vars.protocolSeizeTokens);
-
-        // (vars.mathErr, vars.liquidatorTokensNew) = addUInt(accountTokens[liquidator], vars.liquidatorSeizeTokens);
-        // if (vars.mathErr != MathError.NO_ERROR) {
-        //     return failOpaque(Error.MATH_ERROR, FailureInfo.LIQUIDATE_SEIZE_BALANCE_INCREMENT_FAILED, uint(vars.mathErr));
-        // }
-
-        // /////////////////////////
-        // // EFFECTS & INTERACTIONS
-        // // (No safe failures beyond this point)
-
-        // /* We write the previously calculated values into storage */
-        // totalReserves = vars.totalReservesNew;
-        // totalSupply = vars.totalSupplyNew;
-        // accountTokens[borrower] = vars.borrowerTokensNew;
-        // accountTokens[liquidator] = vars.liquidatorTokensNew;
-
-        // /* Emit a Transfer event */
-        // emit Transfer(borrower, liquidator, seizeTokens);
-        // emit Transfer(borrower, address(this), vars.protocolSeizeTokens);
-        // emit ReservesAdded(address(this), vars.protocolSeizeAmount, vars.totalReservesNew);
-        // /* We call the defense hook */
-        // // comptroller.seizeVerify(address(this), seizerToken, liquidator, borrower, seizeTokens);
-
-        // return uint(Error.NO_ERROR);
     }
 
 
