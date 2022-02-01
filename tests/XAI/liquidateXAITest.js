@@ -52,9 +52,9 @@ async function liquidateXAI(xaicontroller, liquidator, borrower, repayAmount, aT
   return send(xaicontroller, 'liquidateXAI', [borrower, repayAmount, aTokenCollateral._address], {from: liquidator});
 }
 
-async function seize(aToken, liquidator, borrower, seizeAmount) {
-  return send(aToken, 'seize', [liquidator, borrower, seizeAmount]);
-}
+// async function seize(aToken, liquidator, borrower, seizeAmount) {
+//   return send(aToken, 'seize', [liquidator, borrower, seizeAmount]);
+// }
 
 describe('XAIController', function () {
   let root, liquidator, borrower, accounts;
