@@ -11,7 +11,7 @@
     "lint": "./script/lint",
     "repl": "./scenario/script/repl",
     "profile": "yarn test tests/gasProfiler.js",
-    "test": "./script/test tests/Comptroller/comptrollerTest.js tests/Tokens/aTokenTest.js",
+    "test": "./script/test",
     "test:prepare": "NO_RUN=true ./script/test",
     "checksize": "npx run ./script/saddle/comptrollerSize.js"
   },
