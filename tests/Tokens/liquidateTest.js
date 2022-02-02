@@ -64,14 +64,14 @@ describe('AToken', function () {
   // const exchangeRate = etherExp(.2);	
   // const protocolShareTokens = seizeTokens.multipliedBy(protocolSeizeShareMantissa).dividedBy(etherExp(1));
   // const liquidatorShareTokens = seizeTokens.minus(protocolShareTokens);
-  // const addReservesAmount = protocolShareTokens.multipliedBy(exchangeRate).dividedBy(etherExp(1));
+  const addReservesAmount = protocolShareTokens.multipliedBy(exchangeRate).dividedBy(etherExp(1));
 
-  // beforeEach(async () => {
-  //   [root, liquidator, borrower, ...accounts] = saddle.accounts;
-  //   aToken = await makeAToken({comptrollerOpts: {kind: 'bool'}});
-  //   aTokenCollateral = await makeAToken({comptroller: aToken.comptroller});
-  //   expect(await send(aTokenCollateral, 'harnessSetExchangeRate', [exchangeRate])).toSucceed();
-  // });
+  beforeEach(async () => {
+    [root, liquidator, borrower, ...accounts] = saddle.accounts;
+    aToken = await makeAToken({comptrollerOpts: {kind: 'bool'}});
+    aTokenCollateral = await makeAToken({comptroller: aToken.comptroller});
+    // expect(await send(aTokenCollateral, 'harnessSetExchangeRate', [exchangeRate])).toSucceed();
+  });
 
   beforeEach(async () => {
     await preLiquidate(aToken, liquidator, borrower, repayAmount, aTokenCollateral);
@@ -181,11 +181,12 @@ describe('AToken', function () {
         [aToken, liquidator, 'cash', -repayAmount],
         [aTokenCollateral, liquidator, 'tokens', seizeTokens],
         [aToken, borrower, 'borrows', -repayAmount],
-        [aTokenCollateral, borrower, 'tokens', -seizeTokens]
+        [aTokenCollateral, borrower, 'tokens', -seizeTokens],
+        [aTokenCollateral, aTokenCollateral._address, 'reserves', addReservesAmount],
+        [aTokenCollateral, aTokenCollateral._address, 'tokens', -seizeTokens]
       ]));
     });
   });
-});
 
 
      
