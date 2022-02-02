@@ -183,7 +183,7 @@ describe('AToken', function () {
         [aToken, borrower, 'borrows', -repayAmount],
         [aTokenCollateral, borrower, 'tokens', -seizeTokens],
         // [aTokenCollateral, aTokenCollateral._address, 'reserves', addReservesAmount],
-        [aTokenCollateral, aTokenCollateral._address, 'tokens', -seizeTokens]
+        // [aTokenCollateral, aTokenCollateral._address, 'tokens', -seizeTokens]
       ]));
     });
   });
