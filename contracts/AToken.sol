@@ -1059,17 +1059,17 @@ contract AToken is ATokenInterface, Exponential, TokenErrorReporter {
         return seizeInternal(msg.sender, liquidator, borrower, seizeTokens);
     }
 
-   struct SeizeInternalLocalVars {
-        MathError mathErr;
-        uint borrowerTokensNew;
-        uint liquidatorTokensNew;
-        uint liquidatorSeizeTokens;
-        uint protocolSeizeTokens;
-        uint protocolSeizeAmount;
-        uint exchangeRateMantissa;
-        uint totalReservesNew;
-        uint totalSupplyNew;
-    }
+//    struct SeizeInternalLocalVars {
+//         MathError mathErr;
+//         uint borrowerTokensNew;
+//         uint liquidatorTokensNew;
+//         uint liquidatorSeizeTokens;
+//         uint protocolSeizeTokens;
+//         uint protocolSeizeAmount;
+//         uint exchangeRateMantissa;
+//         uint totalReservesNew;
+//         uint totalSupplyNew;
+//     }
     /**
      * @notice Transfers collateral tokens (this market) to the liquidator.
      * @dev Called only during an in-kind liquidation, or by liquidateBorrow during the liquidation of another AToken.
@@ -1092,36 +1092,23 @@ contract AToken is ATokenInterface, Exponential, TokenErrorReporter {
             return fail(Error.INVALID_ACCOUNT_PAIR, FailureInfo.LIQUIDATE_SEIZE_LIQUIDATOR_IS_BORROWER);
         }
 
-        SeizeInternalLocalVars memory vars;
-
-        // MathError mathErr;
-        // uint borrowerTokensNew;
-        // uint liquidatorTokensNew;
+        MathError mathErr;
+        uint borrowerTokensNew;
+        uint liquidatorTokensNew;
 
         /*
          * We calculate the new borrower and liquidator token balances, failing on underflow/overflow:
          *  borrowerTokensNew = accountTokens[borrower] - seizeTokens
          *  liquidatorTokensNew = accountTokens[liquidator] + seizeTokens
          */
-         
-        (vars.mathErr, vars.borrowerTokensNew) = subUInt(accountTokens[borrower], seizeTokens);
-        if (vars.mathErr != MathError.NO_ERROR) {
-            return failOpaque(Error.MATH_ERROR, FailureInfo.LIQUIDATE_SEIZE_BALANCE_DECREMENT_FAILED, uint(vars.mathErr));
+        (mathErr, borrowerTokensNew) = subUInt(accountTokens[borrower], seizeTokens);
+        if (mathErr != MathError.NO_ERROR) {
+            return failOpaque(Error.MATH_ERROR, FailureInfo.LIQUIDATE_SEIZE_BALANCE_DECREMENT_FAILED, uint(mathErr));
         }
-        vars.protocolSeizeTokens = mul_(seizeTokens, Exp({mantissa: protocolSeizeShareMantissa}));
-        vars.liquidatorSeizeTokens = sub_(seizeTokens, vars.protocolSeizeTokens);
 
-        (vars.mathErr, vars.exchangeRateMantissa) = exchangeRateStoredInternal();
-        require(vars.mathErr == MathError.NO_ERROR, "exchange rate math error");
-
-        vars.protocolSeizeAmount = mul_ScalarTruncate(Exp({mantissa: vars.exchangeRateMantissa}), vars.protocolSeizeTokens);
-
-        vars.totalReservesNew = add_(totalReserves, vars.protocolSeizeAmount);
-        vars.totalSupplyNew = sub_(totalSupply, vars.protocolSeizeTokens);
-
-        (vars.mathErr, vars.liquidatorTokensNew) = addUInt(accountTokens[liquidator], vars.liquidatorSeizeTokens);
-        if (vars.mathErr != MathError.NO_ERROR) {
-            return failOpaque(Error.MATH_ERROR, FailureInfo.LIQUIDATE_SEIZE_BALANCE_INCREMENT_FAILED, uint(vars.mathErr));
+        (mathErr, liquidatorTokensNew) = addUInt(accountTokens[liquidator], seizeTokens);
+        if (mathErr != MathError.NO_ERROR) {
+            return failOpaque(Error.MATH_ERROR, FailureInfo.LIQUIDATE_SEIZE_BALANCE_INCREMENT_FAILED, uint(mathErr));
         }
 
         /////////////////////////
@@ -1129,17 +1116,14 @@ contract AToken is ATokenInterface, Exponential, TokenErrorReporter {
         // (No safe failures beyond this point)
 
         /* We write the previously calculated values into storage */
-        totalReserves = vars.totalReservesNew;
-        totalSupply = vars.totalSupplyNew;
-        accountTokens[borrower] = vars.borrowerTokensNew;
-        accountTokens[liquidator] = vars.liquidatorTokensNew;
+        accountTokens[borrower] = borrowerTokensNew;
+        accountTokens[liquidator] = liquidatorTokensNew;
 
         /* Emit a Transfer event */
         emit Transfer(borrower, liquidator, seizeTokens);
-        emit Transfer(borrower, address(this), vars.protocolSeizeTokens);
-        emit ReservesAdded(address(this), vars.protocolSeizeAmount, vars.totalReservesNew);
+
         /* We call the defense hook */
-        // comptroller.seizeVerify(address(this), seizerToken, liquidator, borrower, seizeTokens);
+        comptroller.seizeVerify(address(this), seizerToken, liquidator, borrower, seizeTokens);
 
         return uint(Error.NO_ERROR);
     }
