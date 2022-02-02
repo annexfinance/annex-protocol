@@ -187,6 +187,7 @@ describe('AToken', function () {
       ]));
     });
   });
+});
 
 
      
