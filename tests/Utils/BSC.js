@@ -145,6 +145,7 @@ module.exports = {
   bnbMantissa,
   bnbUnsigned,
   etherExp,
+
   etherDouble,
   etherMantissa,
   mergeInterface,

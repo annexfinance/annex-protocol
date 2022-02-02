@@ -1070,6 +1070,7 @@ contract AToken is ATokenInterface, Exponential, TokenErrorReporter {
         uint totalReservesNew;
         uint totalSupplyNew;
     }
+    
     /**
      * @notice Transfers collateral tokens (this market) to the liquidator.
      * @dev Called only during an in-kind liquidation, or by liquidateBorrow during the liquidation of another AToken.

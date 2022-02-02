@@ -221,6 +221,7 @@ describe('AToken', function () {
       ]));
     });
   });
+  
 
   describe('seize', () => {
     // XXX verify callers are properly checked
