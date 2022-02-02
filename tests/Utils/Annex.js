@@ -8,6 +8,8 @@ const {
   bnbUnsigned,
   mergeInterface
 } = require('./BSC');
+const BigNumber = require('bignumber.js');
+
 
 async function makeComptroller(opts = {}) {
   const {
