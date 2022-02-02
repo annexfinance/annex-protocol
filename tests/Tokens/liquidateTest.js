@@ -17,7 +17,7 @@ const {
   enterMarkets
 } = require('../Utils/Annex');
 
-const repayAmount = etherExp(10);
+const repayAmount = etherExp(10e2);
 const seizeAmount = repayAmount;
 const seizeTokens = seizeAmount.multipliedBy(4); // forced
 
