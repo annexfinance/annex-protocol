@@ -170,22 +170,125 @@ describe('AToken', function () {
         to: liquidator,
         amount: seizeTokens.toString()
       });
-      // expect(result).toHaveLog(['Transfer', 2], {
-      //   from: borrower,
-      //   to: aTokenCollateral._address,
-      //   amount: protocolShareTokens.toString()
-      // });
-      console.log(repayAmount,-repayAmount,seizeTokens,-repayAmount,-seizeTokens)
       expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
         [aToken, 'cash', repayAmount],
-        // [aToken, 'borrows', -repayAmount],
-        // [aToken, liquidator, 'cash', -repayAmount],
-        // [aTokenCollateral, liquidator, 'tokens', seizeTokens],
-        // [aToken, borrower, 'borrows', -repayAmount],
-        // [aTokenCollateral, borrower, 'tokens', -seizeTokens],
+        [aToken, 'borrows', -repayAmount],
+        [aToken, liquidator, 'cash', -repayAmount],
+        [aTokenCollateral, liquidator, 'tokens', seizeTokens],
+        [aToken, borrower, 'borrows', -repayAmount],
+        [aTokenCollateral, borrower, 'tokens', -seizeTokens]
       ]));
     });
   });
+  // describe('liquidateBorrowFresh', () => {
+  //   it("fails if comptroller tells it to", async () => {
+  //     await send(aToken.comptroller, 'setLiquidateBorrowAllowed', [false]);
+  //     expect(
+  //       await liquidateFresh(aToken, liquidator, borrower, repayAmount, aTokenCollateral)
+  //     ).toHaveTrollReject('LIQUIDATE_COMPTROLLER_REJECTION', 'MATH_ERROR');
+  //   });
+
+  //   it("proceeds if comptroller tells it to", async () => {
+  //     expect(
+  //       await liquidateFresh(aToken, liquidator, borrower, repayAmount, aTokenCollateral)
+  //     ).toSucceed();
+  //   });
+
+  //   it("fails if market not fresh", async () => {
+  //     await fastForward(aToken);
+  //     expect(
+  //       await liquidateFresh(aToken, liquidator, borrower, repayAmount, aTokenCollateral)
+  //     ).toHaveTokenFailure('MARKET_NOT_FRESH', 'LIQUIDATE_FRESHNESS_CHECK');
+  //   });
+
+  //   it("fails if collateral market not fresh", async () => {
+  //     await fastForward(aToken);
+  //     await fastForward(aTokenCollateral);
+  //     await send(aToken, 'accrueInterest');
+  //     expect(
+  //       await liquidateFresh(aToken, liquidator, borrower, repayAmount, aTokenCollateral)
+  //     ).toHaveTokenFailure('MARKET_NOT_FRESH', 'LIQUIDATE_COLLATERAL_FRESHNESS_CHECK');
+  //   });
+
+  //   it("fails if borrower is equal to liquidator", async () => {
+  //     expect(
+  //       await liquidateFresh(aToken, borrower, borrower, repayAmount, aTokenCollateral)
+  //     ).toHaveTokenFailure('INVALID_ACCOUNT_PAIR', 'LIQUIDATE_LIQUIDATOR_IS_BORROWER');
+  //   });
+
+  //   it("fails if repayAmount = 0", async () => {
+  //     expect(await liquidateFresh(aToken, liquidator, borrower, 0, aTokenCollateral)).toHaveTokenFailure('INVALID_CLOSE_AMOUNT_REQUESTED', 'LIQUIDATE_CLOSE_AMOUNT_IS_ZERO');
+  //   });
+
+  //   it("fails if calculating seize tokens fails and does not adjust balances", async () => {
+  //     const beforeBalances = await getBalances([aToken, aTokenCollateral], [liquidator, borrower]);
+  //     await send(aToken.comptroller, 'setFailCalculateSeizeTokens', [true]);
+  //     await expect(
+  //       liquidateFresh(aToken, liquidator, borrower, repayAmount, aTokenCollateral)
+  //     ).rejects.toRevert('revert LIQUIDATE_COMPTROLLER_CALCULATE_AMOUNT_SEIZE_FAILED');
+  //     const afterBalances = await getBalances([aToken, aTokenCollateral], [liquidator, borrower]);
+  //     expect(afterBalances).toEqual(beforeBalances);
+  //   });
+
+  //   it("fails if repay fails", async () => {
+  //     await send(aToken.comptroller, 'setRepayBorrowAllowed', [false]);
+  //     expect(
+  //       await liquidateFresh(aToken, liquidator, borrower, repayAmount, aTokenCollateral)
+  //     ).toHaveTrollReject('LIQUIDATE_REPAY_BORROW_FRESH_FAILED');
+  //   });
+
+  //   it("reverts if seize fails", async () => {
+  //     await send(aToken.comptroller, 'setSeizeAllowed', [false]);
+  //     await expect(
+  //       liquidateFresh(aToken, liquidator, borrower, repayAmount, aTokenCollateral)
+  //     ).rejects.toRevert("revert token seizure failed");
+  //   });
+
+  //   it("reverts if liquidateBorrowVerify fails", async() => {
+  //     await send(aToken.comptroller, 'setLiquidateBorrowVerify', [false]);
+  //     await expect(
+  //       liquidateFresh(aToken, liquidator, borrower, repayAmount, aTokenCollateral)
+  //     ).rejects.toRevert("revert liquidateBorrowVerify rejected liquidateBorrow");
+  //   });
+
+  //   it("transfers the cash, borrows, tokens, and emits Transfer, LiquidateBorrow events", async () => {
+  //     const beforeBalances = await getBalances([aToken, aTokenCollateral], [liquidator, borrower]);
+  //     const result = await liquidateFresh(aToken, liquidator, borrower, repayAmount, aTokenCollateral);
+  //     const afterBalances = await getBalances([aToken, aTokenCollateral], [liquidator, borrower]);
+  //     expect(result).toSucceed();
+  //     expect(result).toHaveLog('LiquidateBorrow', {
+  //       liquidator: liquidator,
+  //       borrower: borrower,
+  //       repayAmount: repayAmount.toString(),
+  //       aTokenCollateral: aTokenCollateral._address,
+  //       seizeTokens: seizeTokens.toString()
+  //     });
+  //     expect(result).toHaveLog(['Transfer', 0], {
+  //       from: liquidator,
+  //       to: aToken._address,
+  //       amount: repayAmount.toString()
+  //     });
+  //     expect(result).toHaveLog(['Transfer', 1], {
+  //       from: borrower,
+  //       to: liquidator,
+  //       amount: seizeTokens.toString()
+  //     });
+  //     // expect(result).toHaveLog(['Transfer', 2], {
+  //     //   from: borrower,
+  //     //   to: aTokenCollateral._address,
+  //     //   amount: protocolShareTokens.toString()
+  //     // });
+  //     console.log(repayAmount,-repayAmount,seizeTokens,-repayAmount,-seizeTokens)
+  //     expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
+  //       [aToken, 'cash', repayAmount],
+  //       // [aToken, 'borrows', -repayAmount],
+  //       // [aToken, liquidator, 'cash', -repayAmount],
+  //       // [aTokenCollateral, liquidator, 'tokens', seizeTokens],
+  //       // [aToken, borrower, 'borrows', -repayAmount],
+  //       // [aTokenCollateral, borrower, 'tokens', -seizeTokens],
+  //     ]));
+  //   });
+  // });
 });
 
 
