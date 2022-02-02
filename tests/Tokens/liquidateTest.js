@@ -2,6 +2,7 @@ const {
   bnbGasCost,
   bnbUnsigned,
   etherMantissa,
+  UInt256Max,
   etherExp
 } = require('../Utils/BSC');
 
@@ -16,7 +17,7 @@ const {
   enterMarkets
 } = require('../Utils/Annex');
 
-const repayAmount = bnbUnsigned(10e2);
+const repayAmount = etherExp(10);
 const seizeAmount = repayAmount;
 const seizeTokens = seizeAmount.mul(4); // forced
 
@@ -61,9 +62,9 @@ describe('AToken', function () {
   let aToken, aTokenCollateral;
   const protocolSeizeShareMantissa = 2.8e16; // 2.8%
   const exchangeRate = etherExp(.2);	
-  const protocolShareTokens = seizeTokens.multipliedBy(protocolSeizeShareMantissa).dividedBy(etherExp(1));
+  const protocolShareTokens = seizeTokens.mul(protocolSeizeShareMantissa).dividedBy(etherExp(1));
   const liquidatorShareTokens = seizeTokens.minus(protocolShareTokens);
-  const addReservesAmount = protocolShareTokens.multipliedBy(exchangeRate).dividedBy(etherExp(1));
+  const addReservesAmount = protocolShareTokens.mul(exchangeRate).dividedBy(etherExp(1));
 
   beforeEach(async () => {
     [root, liquidator, borrower, ...accounts] = saddle.accounts;
@@ -167,7 +168,7 @@ describe('AToken', function () {
       expect(result).toHaveLog(['Transfer', 1], {
         from: borrower,
         to: liquidator,
-        amount: seizeTokens.toString()
+        amount: liquidatorShareTokens.toString()
       });
       expect(result).toHaveLog(['Transfer', 2], {
         from: borrower,
@@ -178,7 +179,7 @@ describe('AToken', function () {
         [aToken, 'cash', repayAmount],
         [aToken, 'borrows', -repayAmount],
         [aToken, liquidator, 'cash', -repayAmount],
-        [aTokenCollateral, liquidator, 'tokens', seizeTokens],
+        [aTokenCollateral, liquidator, 'tokens', liquidatorShareTokens],
         [aToken, borrower, 'borrows', -repayAmount],
         [aTokenCollateral, borrower, 'tokens', -seizeTokens],
         [aTokenCollateral, aTokenCollateral._address, 'reserves', addReservesAmount],
@@ -214,14 +215,14 @@ describe('AToken', function () {
         [aToken, liquidator, 'bnb', -gasCost],
         [aToken, liquidator, 'cash', -repayAmount],
         [aTokenCollateral, liquidator, 'bnb', -gasCost],
-        [aTokenCollateral, liquidator, 'tokens', seizeTokens],
+        [aTokenCollateral, liquidator, 'tokens', liquidatorShareTokens],
         [aToken, borrower, 'borrows', -repayAmount],
         [aTokenCollateral, borrower, 'tokens', -seizeTokens],
         [aTokenCollateral, aTokenCollateral._address, 'tokens', -protocolShareTokens], // total supply decreases
       ]));
     });
   });
-  
+
 
   describe('seize', () => {
     // XXX verify callers are properly checked
@@ -237,7 +238,7 @@ describe('AToken', function () {
     });
 
     it("fails if aTokenBalances[liquidator] overflows", async () => {
-      await setBalance(aTokenCollateral, liquidator, '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+      await setBalance(aTokenCollateral, liquidator, UInt256Max());
       expect(await seize(aTokenCollateral, liquidator, borrower, seizeTokens)).toHaveTokenMathFailure('LIQUIDATE_SEIZE_BALANCE_INCREMENT_FAILED', 'INTEGER_OVERFLOW');
     });
 
@@ -249,7 +250,7 @@ describe('AToken', function () {
       expect(result).toHaveLog('Transfer', {
         from: borrower,
         to: liquidator,
-        amount: seizeTokens.toString()
+        amount: liquidatorShareTokens.toString()
       });
       expect(result).toHaveLog(['Transfer', 1], {
         from: borrower,
@@ -262,7 +263,7 @@ describe('AToken', function () {
         newTotalReserves: addReservesAmount.toString()
       });
       expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
-        [aTokenCollateral, liquidator, 'tokens', seizeTokens],
+        [aTokenCollateral, liquidator, 'tokens', liquidatorShareTokens],
         [aTokenCollateral, borrower, 'tokens', -seizeTokens],
         [aTokenCollateral, aTokenCollateral._address, 'reserves', addReservesAmount],
         [aTokenCollateral, aTokenCollateral._address, 'tokens', -protocolShareTokens], // total supply decreases
