@@ -16,8 +16,8 @@ function etherExp(num) { return etherMantissa(num, 1e18) }
 function etherDouble(num) { return etherMantissa(num, 1e36) }
 function etherMantissa(num, scale = 1e18) {
   if (num < 0)
-    return new BigNumber(2).pow(256).plus(num);
-  return new BigNumber(num).times(scale);
+    return new BigNum(2).pow(256).plus(num);
+  return new BigNum(num).times(scale);
 }
 async function bnbBalance(addr) {
   return ethers.utils.bigNumberify(new BigNum(await web3.eth.getBalance(addr)).toFixed());
