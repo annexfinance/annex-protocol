@@ -1094,9 +1094,9 @@ contract AToken is ATokenInterface, Exponential, TokenErrorReporter {
 
         SeizeInternalLocalVars memory vars;
 
-        MathError mathErr;
-        uint borrowerTokensNew;
-        uint liquidatorTokensNew;
+        // MathError mathErr;
+        // uint borrowerTokensNew;
+        // uint liquidatorTokensNew;
 
         /*
          * We calculate the new borrower and liquidator token balances, failing on underflow/overflow:
