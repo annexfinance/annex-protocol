@@ -175,6 +175,7 @@ describe('AToken', function () {
       //   to: aTokenCollateral._address,
       //   amount: protocolShareTokens.toString()
       // });
+      console.log(repayAmount,-repayAmount,seizeTokens,-repayAmount,-seizeTokens)
       expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
         [aToken, 'cash', repayAmount],
         // [aToken, 'borrows', -repayAmount],
