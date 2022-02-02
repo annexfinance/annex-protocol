@@ -62,9 +62,9 @@ describe('AToken', function () {
   let aToken, aTokenCollateral;
   const protocolSeizeShareMantissa = 2.8e16; // 2.8%
   const exchangeRate = etherExp(.2);	
-  const protocolShareTokens = seizeTokens.mul(protocolSeizeShareMantissa).dividedBy(etherExp(1));
+  const protocolShareTokens = seizeTokens.multipliedBy(protocolSeizeShareMantissa).dividedBy(etherExp(1));
   const liquidatorShareTokens = seizeTokens.minus(protocolShareTokens);
-  const addReservesAmount = protocolShareTokens.mul(exchangeRate).dividedBy(etherExp(1));
+  const addReservesAmount = protocolShareTokens.multipliedBy(exchangeRate).dividedBy(etherExp(1));
 
   beforeEach(async () => {
     [root, liquidator, borrower, ...accounts] = saddle.accounts;
