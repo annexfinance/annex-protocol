@@ -18,7 +18,7 @@ const {
   enterMarkets
 } = require('../Utils/Annex');
 
-const repayAmount = etherExp(10e2);
+const repayAmount = etherExp(10);
 const seizeTokens = repayAmount.multipliedBy(4);
 
 async function preLiquidate(aToken, liquidator, borrower, repayAmount, aTokenCollateral) {
