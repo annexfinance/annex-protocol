@@ -188,42 +188,42 @@ describe('AToken', function () {
   //   });
   // });
 
-  describe('liquidateBorrow', () => {
-    it("emits a liquidation failure if borrowed asset interest accrual fails", async () => {
-      await send(aToken.interestRateModel, 'setFailBorrowRate', [true]);
-      await expect(liquidate(aToken, liquidator, borrower, repayAmount, aTokenCollateral)).rejects.toRevert("revert INTEREST_RATE_MODEL_ERROR");
-    });
+  // describe('liquidateBorrow', () => {
+  //   it("emits a liquidation failure if borrowed asset interest accrual fails", async () => {
+  //     await send(aToken.interestRateModel, 'setFailBorrowRate', [true]);
+  //     await expect(liquidate(aToken, liquidator, borrower, repayAmount, aTokenCollateral)).rejects.toRevert("revert INTEREST_RATE_MODEL_ERROR");
+  //   });
 
-    it("emits a liquidation failure if collateral asset interest accrual fails", async () => {
-      await send(aTokenCollateral.interestRateModel, 'setFailBorrowRate', [true]);
-      await expect(liquidate(aToken, liquidator, borrower, repayAmount, aTokenCollateral)).rejects.toRevert("revert INTEREST_RATE_MODEL_ERROR");
-    });
+  //   it("emits a liquidation failure if collateral asset interest accrual fails", async () => {
+  //     await send(aTokenCollateral.interestRateModel, 'setFailBorrowRate', [true]);
+  //     await expect(liquidate(aToken, liquidator, borrower, repayAmount, aTokenCollateral)).rejects.toRevert("revert INTEREST_RATE_MODEL_ERROR");
+  //   });
 
-    it("returns error from liquidateBorrowFresh without emitting any extra logs", async () => {
-      expect(await liquidate(aToken, liquidator, borrower, 0, aTokenCollateral)).toHaveTokenFailure('INVALID_CLOSE_AMOUNT_REQUESTED', 'LIQUIDATE_CLOSE_AMOUNT_IS_ZERO');
-    });
+  //   it("returns error from liquidateBorrowFresh without emitting any extra logs", async () => {
+  //     expect(await liquidate(aToken, liquidator, borrower, 0, aTokenCollateral)).toHaveTokenFailure('INVALID_CLOSE_AMOUNT_REQUESTED', 'LIQUIDATE_CLOSE_AMOUNT_IS_ZERO');
+  //   });
 
-    it("returns success from liquidateBorrowFresh and transfers the correct amounts", async () => {
-      const beforeBalances = await getBalances([aToken, aTokenCollateral], [liquidator, borrower]);
-      const result = await liquidate(aToken, liquidator, borrower, repayAmount, aTokenCollateral);
-      const gasCost = await bnbGasCost(result);
-      const afterBalances = await getBalances([aToken, aTokenCollateral], [liquidator, borrower]);
-      expect(result).toSucceed();
-      expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
-        [aToken, 'cash', repayAmount],
-        [aToken, 'borrows', -repayAmount],
-        [aToken, liquidator, 'bnb', -gasCost],
-        [aToken, liquidator, 'cash', -repayAmount],
-        [aTokenCollateral, liquidator, 'bnb', -gasCost],
-        [aTokenCollateral, liquidator, 'tokens', liquidatorShareTokens],
-        [aTokenCollateral, aTokenCollateral._address, 'reserves', addReservesAmount],
-        [aTokenCollateral, liquidator, 'tokens', seizeTokens],
-        [aToken, borrower, 'borrows', -repayAmount],
-        [aTokenCollateral, borrower, 'tokens', -seizeTokens],
-        [aTokenCollateral, aTokenCollateral._address, 'tokens', -protocolShareTokens], // total supply decreases
-      ]));
-    });
-  });
+  //   it("returns success from liquidateBorrowFresh and transfers the correct amounts", async () => {
+  //     const beforeBalances = await getBalances([aToken, aTokenCollateral], [liquidator, borrower]);
+  //     const result = await liquidate(aToken, liquidator, borrower, repayAmount, aTokenCollateral);
+  //     const gasCost = await bnbGasCost(result);
+  //     const afterBalances = await getBalances([aToken, aTokenCollateral], [liquidator, borrower]);
+  //     expect(result).toSucceed();
+  //     expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
+  //       [aToken, 'cash', repayAmount],
+  //       [aToken, 'borrows', -repayAmount],
+  //       [aToken, liquidator, 'bnb', -gasCost],
+  //       [aToken, liquidator, 'cash', -repayAmount],
+  //       [aTokenCollateral, liquidator, 'bnb', -gasCost],
+  //       [aTokenCollateral, liquidator, 'tokens', liquidatorShareTokens],
+  //       [aTokenCollateral, aTokenCollateral._address, 'reserves', addReservesAmount],
+  //       [aTokenCollateral, liquidator, 'tokens', seizeTokens],
+  //       [aToken, borrower, 'borrows', -repayAmount],
+  //       [aTokenCollateral, borrower, 'tokens', -seizeTokens],
+  //       [aTokenCollateral, aTokenCollateral._address, 'tokens', -protocolShareTokens], // total supply decreases
+  //     ]));
+  //   });
+  // });
 
   describe('seize', () => {
     // XXX verify callers are properly checked
