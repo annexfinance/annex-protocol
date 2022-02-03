@@ -68,7 +68,7 @@ describe('AToken', function () {
     it("has a borrow rate", async () => {
       const aToken = await makeAToken({ supportMarket: true, interestRateModelOpts: { kind: 'jump-rate', baseRate: .05, multiplier: 0.45, kink: 0.95, jump: 5 } });
       const blocksPerYear = await call(aToken.interestRateModel, 'blocksPerYear');
-      // const perBlock = await call(aToken, 'borrowRatePerBlock');
+      const perBlock = await call(aToken, 'borrowRatePerBlock');
       expect(Math.abs(perBlock * 2102400  - 5e16)).toBeLessThanOrEqual(1e8);
     });
   });
