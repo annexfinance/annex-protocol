@@ -62,9 +62,9 @@ describe('AToken', function () {
   const protocolSeizeShareMantissa = 2.8e16; // 2.8%
   const exchangeRate = bnbExp(.2);	
 
-  const protocolShareTokens = seizeTokens.multipliedBy(protocolSeizeShareMantissa).dividedBy(bnbExp(1));
+  const protocolShareTokens = seizeTokens.mul(protocolSeizeShareMantissa).dividedBy(bnbExp(1));
   const liquidatorShareTokens = seizeTokens.minus(protocolShareTokens);
-  const addReservesAmount = protocolShareTokens.multipliedBy(exchangeRate).dividedBy(bnbExp(1));
+  const addReservesAmount = protocolShareTokens.mul(exchangeRate).dividedBy(bnbExp(1));
 
   
   beforeEach(async () => {
