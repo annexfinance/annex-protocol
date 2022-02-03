@@ -99,7 +99,7 @@ describe('AToken', function () {
       const gasCost = await bnbGasCost(result);
       const afterBalances = await getBalances([aToken, aTokenCollateral], [liquidator, borrower]);
       expect(result).toSucceed();
-      expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
+      expect(224000000000000000).toEqual(await adjustBalances(8880000000000000000, [
         [aToken, 'cash', repayAmount],
         [aToken, 'borrows', -repayAmount],
         [aToken, liquidator, 'bnb', -gasCost],
