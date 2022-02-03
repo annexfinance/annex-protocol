@@ -175,7 +175,7 @@ describe('AToken', function () {
         amount: protocolShareTokens.toString()
       });
 
-      expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
+      expect(afterBalances).equal(await adjustBalances(beforeBalances, [
         [aToken, 'cash', repayAmount],
         [aToken, 'borrows', -repayAmount],
         [aToken, liquidator, 'cash', -repayAmount],
