@@ -3,12 +3,6 @@
 const BigNum = require('bignumber.js');
 const ethers = require('ethers');
 
-
-function UInt256Max() {
-  return ethers.constants.MaxUint256;
-}
-
-
 function address(n) {
   return `0x${n.toString(16).padStart(40, '0')}`;
 }
@@ -18,13 +12,6 @@ function encodeParameters(types, values) {
   return abi.encode(types, values);
 }
 
-function etherExp(num) { return etherMantissa(num, 1e18) }
-function etherDouble(num) { return etherMantissa(num, 1e36) }
-function etherMantissa(num, scale = 1e18) {
-  if (num < 0)
-    return new BigNum(2).pow(256).plus(num);
-  return new BigNum(num).times(scale);
-}
 async function bnbBalance(addr) {
   return ethers.utils.bigNumberify(new BigNum(await web3.eth.getBalance(addr)).toFixed());
 }
@@ -150,10 +137,6 @@ module.exports = {
   bnbDouble,
   bnbMantissa,
   bnbUnsigned,
-  etherExp,
-
-  etherDouble,
-  etherMantissa,
   mergeInterface,
   keccak256,
   unlockedAccounts,
@@ -171,6 +154,5 @@ module.exports = {
   setTime,
 
   both,
-  sendFallback,
-  UInt256Max
+  sendFallback
 };
