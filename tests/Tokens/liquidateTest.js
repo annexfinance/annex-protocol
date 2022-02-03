@@ -78,6 +78,44 @@ describe('AToken', function () {
   beforeEach(async () => {
     await preLiquidate(aToken, liquidator, borrower, repayAmount, aTokenCollateral);
   });
+  describe('liquidateBorrow', () => {
+    it("emits a liquidation failure if borrowed asset interest accrual fails", async () => {
+      await send(aToken.interestRateModel, 'setFailBorrowRate', [true]);
+      await expect(liquidate(aToken, liquidator, borrower, repayAmount, aTokenCollateral)).rejects.toRevert("revert INTEREST_RATE_MODEL_ERROR");
+    });
+
+    it("emits a liquidation failure if collateral asset interest accrual fails", async () => {
+      await send(aTokenCollateral.interestRateModel, 'setFailBorrowRate', [true]);
+      await expect(liquidate(aToken, liquidator, borrower, repayAmount, aTokenCollateral)).rejects.toRevert("revert INTEREST_RATE_MODEL_ERROR");
+    });
+
+    it("returns error from liquidateBorrowFresh without emitting any extra logs", async () => {
+      expect(await liquidate(aToken, liquidator, borrower, 0, aTokenCollateral)).toHaveTokenFailure('INVALID_CLOSE_AMOUNT_REQUESTED', 'LIQUIDATE_CLOSE_AMOUNT_IS_ZERO');
+    });
+
+    it("returns success from liquidateBorrowFresh and transfers the correct amounts", async () => {
+      const beforeBalances = await getBalances([aToken, aTokenCollateral], [liquidator, borrower]);
+      const result = await liquidate(aToken, liquidator, borrower, repayAmount, aTokenCollateral);
+      const gasCost = await bnbGasCost(result);
+      const afterBalances = await getBalances([aToken, aTokenCollateral], [liquidator, borrower]);
+      expect(result).toSucceed();
+      expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
+        [aToken, 'cash', repayAmount],
+        [aToken, 'borrows', -repayAmount],
+        [aToken, liquidator, 'bnb', -gasCost],
+        [aToken, liquidator, 'cash', -repayAmount],
+        [aTokenCollateral, liquidator, 'bnb', -gasCost],
+        [aTokenCollateral, liquidator, 'tokens', liquidatorShareTokens],
+        [aTokenCollateral, aTokenCollateral._address, 'reserves', addReservesAmount],
+        [aTokenCollateral, liquidator, 'tokens', seizeTokens],
+        [aToken, borrower, 'borrows', -repayAmount],
+        [aTokenCollateral, borrower, 'tokens', -seizeTokens],
+        [aTokenCollateral, aTokenCollateral._address, 'tokens', -protocolShareTokens], // total supply decreases
+      ]));
+    });
+  });
+
+
   describe('seize', () => {
     // XXX verify callers are properly checked
 
@@ -126,41 +164,3 @@ describe('AToken', function () {
     });
   });
 });
-
-describe('Comptroller', () => {
-  it('liquidateBorrowAllowed allows deprecated markets to be liquidated', async () => {
-    let [root, liquidator, borrower] = saddle.accounts;
-    let collatAmount = 10;
-    let borrowAmount = 2;
-    const aTokenCollat = await makeAToken({supportMarket: true, underlyingPrice: 1, collateralFactor: .5});
-    const aTokenBorrow = await makeAToken({supportMarket: true, underlyingPrice: 1, comptroller: aTokenCollat.comptroller});
-    const comptroller = aTokenCollat.comptroller;
-
-    // borrow some tokens
-    await send(aTokenCollat.underlying, 'harnessSetBalance', [borrower, collatAmount]);
-    await send(aTokenCollat.underlying, 'approve', [aTokenCollat._address, collatAmount], {from: borrower});
-    await send(aTokenBorrow.underlying, 'harnessSetBalance', [aTokenBorrow._address, collatAmount]);
-    await send(aTokenBorrow, 'harnessSetTotalSupply', [collatAmount * 10]);
-    await send(aTokenBorrow, 'harnessSetExchangeRate', [etherExp(1)]);
-    expect(await enterMarkets([aTokenCollat], borrower)).toSucceed();
-    expect(await send(aTokenCollat, 'mint', [collatAmount], {from: borrower})).toSucceed();
-    expect(await send(aTokenBorrow, 'borrow', [borrowAmount], {from: borrower})).toSucceed();
-
-    // show the account is healthy
-    expect(await call(comptroller, 'isDeprecated', [aTokenBorrow._address])).toEqual(false);
-    expect(await call(comptroller, 'liquidateBorrowAllowed', [aTokenBorrow._address, aTokenCollat._address, liquidator, borrower, borrowAmount])).toHaveTrollError('INSUFFICIENT_SHORTFALL');
-
-    // show deprecating a market works
-    expect(await send(comptroller, '_setCollateralFactor', [aTokenBorrow._address, 0])).toSucceed();
-    expect(await send(comptroller, '_setBorrowPaused', [aTokenBorrow._address, true])).toSucceed();
-    expect(await send(aTokenBorrow, '_setReserveFactor', [etherMantissa(1)])).toSucceed();
-
-    expect(await call(comptroller, 'isDeprecated', [aTokenBorrow._address])).toEqual(true);
-
-    // show deprecated markets can be liquidated even if healthy
-    expect(await send(comptroller, 'liquidateBorrowAllowed', [aTokenBorrow._address, aTokenCollat._address, liquidator, borrower, borrowAmount])).toSucceed();
-    
-    // even if deprecated, cant over repay
-    await expect(send(comptroller, 'liquidateBorrowAllowed', [aTokenBorrow._address, aTokenCollat._address, liquidator, borrower, borrowAmount * 2])).rejects.toRevert('revert Can not repay more than the total borrow');
-  });
-})
