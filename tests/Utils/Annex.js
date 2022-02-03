@@ -8,7 +8,7 @@ const {
   bnbUnsigned,
   mergeInterface
 } = require('./BSC');
-
+const BigNumber = require('bignumber.js');
 async function makeComptroller(opts = {}) {
   const {
     root = saddle.account,
@@ -418,7 +418,7 @@ async function adjustBalances(balances, deltas) {
       ([aToken, key, diff] = delta);
       account = aToken._address;
     }
-    balances[aToken._address][account][key] = balances[aToken._address][account][key].add(diff);
+    balances[aToken._address][account][key] =  new BigNumber(balances[aToken._address][account][key]).plus(diff);
   }
   return balances;
 }
