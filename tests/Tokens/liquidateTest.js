@@ -239,7 +239,7 @@ describe('AToken', function () {
     });
 
     it("fails if aTokenBalances[liquidator] overflows", async () => {
-      await setBalance(aTokenCollateral, liquidator, '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+      await setBalance(aTokenCollateral, liquidator, UInt256Max());
       expect(await seize(aTokenCollateral, liquidator, borrower, seizeTokens)).toHaveTokenMathFailure('LIQUIDATE_SEIZE_BALANCE_INCREMENT_FAILED', 'INTEGER_OVERFLOW');
     });
 
