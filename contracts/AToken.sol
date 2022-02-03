@@ -692,32 +692,32 @@ contract AToken is ATokenInterface, Exponential, TokenErrorReporter {
          *  doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
          */
 
-        uint feeAmount;
-        uint remainedAmount;
-        if (IComptroller(address(comptroller)).treasuryPercent() != 0) {
-            (vars.mathErr, feeAmount) = mulUInt(vars.redeemAmount, IComptroller(address(comptroller)).treasuryPercent());
-            if (vars.mathErr != MathError.NO_ERROR) {
-                return failOpaque(Error.MATH_ERROR, FailureInfo.REDEEM_FEE_CALCULATION_FAILED, uint(vars.mathErr));
-            }
+        // uint feeAmount;
+        // uint remainedAmount;
+        // if (IComptroller(address(comptroller)).treasuryPercent() != 0) {
+        //     (vars.mathErr, feeAmount) = mulUInt(vars.redeemAmount, IComptroller(address(comptroller)).treasuryPercent());
+        //     if (vars.mathErr != MathError.NO_ERROR) {
+        //         return failOpaque(Error.MATH_ERROR, FailureInfo.REDEEM_FEE_CALCULATION_FAILED, uint(vars.mathErr));
+        //     }
 
-            (vars.mathErr, feeAmount) = divUInt(feeAmount, 1e18);
-            if (vars.mathErr != MathError.NO_ERROR) {
-                return failOpaque(Error.MATH_ERROR, FailureInfo.REDEEM_FEE_CALCULATION_FAILED, uint(vars.mathErr));
-            }
+        //     (vars.mathErr, feeAmount) = divUInt(feeAmount, 1e18);
+        //     if (vars.mathErr != MathError.NO_ERROR) {
+        //         return failOpaque(Error.MATH_ERROR, FailureInfo.REDEEM_FEE_CALCULATION_FAILED, uint(vars.mathErr));
+        //     }
 
-            (vars.mathErr, remainedAmount) = subUInt(vars.redeemAmount, feeAmount);
-            if (vars.mathErr != MathError.NO_ERROR) {
-                return failOpaque(Error.MATH_ERROR, FailureInfo.REDEEM_FEE_CALCULATION_FAILED, uint(vars.mathErr));
-            }
+        //     (vars.mathErr, remainedAmount) = subUInt(vars.redeemAmount, feeAmount);
+        //     if (vars.mathErr != MathError.NO_ERROR) {
+        //         return failOpaque(Error.MATH_ERROR, FailureInfo.REDEEM_FEE_CALCULATION_FAILED, uint(vars.mathErr));
+        //     }
 
-            doTransferOut(address(uint160(IComptroller(address(comptroller)).treasuryAddress())), feeAmount);
+        //     doTransferOut(address(uint160(IComptroller(address(comptroller)).treasuryAddress())), feeAmount);
 
-            emit RedeemFee(redeemer, feeAmount, vars.redeemTokens);
-        } else {
-            remainedAmount = vars.redeemAmount;
-        }
+        //     emit RedeemFee(redeemer, feeAmount, vars.redeemTokens);
+        // } else {
+        //     remainedAmount = vars.redeemAmount;
+        // }
 
-        doTransferOut(redeemer, remainedAmount);
+        doTransferOut(redeemer, vars.redeemAmount);
 
         /* We write previously calculated values into storage */
         totalSupply = vars.totalSupplyNew;
@@ -725,7 +725,7 @@ contract AToken is ATokenInterface, Exponential, TokenErrorReporter {
 
         /* We emit a Transfer event, and a Redeem event */
         emit Transfer(redeemer, address(this), vars.redeemTokens);
-        emit Redeem(redeemer, remainedAmount, vars.redeemTokens);
+        emit Redeem(redeemer, vars.redeemAmount, vars.redeemTokens);
 
         /* We call the defense hook */
         comptroller.redeemVerify(address(this), redeemer, vars.redeemAmount, vars.redeemTokens);
