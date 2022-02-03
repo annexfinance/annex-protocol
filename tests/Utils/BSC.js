@@ -6,6 +6,9 @@ const ethers = require('ethers');
 function address(n) {
   return `0x${n.toString(16).padStart(40, '0')}`;
 }
+function UInt256Max() {
+  return ethers.constants.MaxUint256;
+}
 
 function encodeParameters(types, values) {
   const abi = new ethers.utils.AbiCoder();
@@ -154,5 +157,6 @@ module.exports = {
   setTime,
 
   both,
+  UInt256Max,
   sendFallback
 };

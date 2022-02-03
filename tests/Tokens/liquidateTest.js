@@ -1,6 +1,9 @@
 const {
   bnbGasCost,
-  bnbUnsigned
+  bnbUnsigned,
+  bnbMantissa,
+  UInt256Max,
+  bnbExp
 } = require('../Utils/BSC');
 
 const {
@@ -10,12 +13,12 @@ const {
   getBalances,
   adjustBalances,
   pretendBorrow,
-  preApprove
+  preApprove,
+  enterMarkets
 } = require('../Utils/Annex');
 
-const repayAmount = bnbUnsigned(10e2);
-const seizeAmount = repayAmount;
-const seizeTokens = seizeAmount.mul(4); // forced
+const repayAmount = bnbUnsigned(10);
+const seizeTokens = repayAmount.multipliedBy(4);
 
 async function preLiquidate(aToken, liquidator, borrower, repayAmount, aTokenCollateral) {
   // setup for success in liquidating
@@ -29,7 +32,8 @@ async function preLiquidate(aToken, liquidator, borrower, repayAmount, aTokenCol
   await send(aToken.underlying, 'harnessSetFailTransferFromAddress', [liquidator, false]);
   await send(aToken.interestRateModel, 'setFailBorrowRate', [false]);
   await send(aTokenCollateral.interestRateModel, 'setFailBorrowRate', [false]);
-  await send(aTokenCollateral.comptroller, 'setCalculatedSeizeTokens', [seizeTokens]);
+  await send(aTokenCollateral.comptroller, 'setCalculatedSeizeTokens', [seizeTokens]);  	
+  await send(aTokenCollateral, 'harnessSetTotalSupply', [bnbExp(10)]);
   await setBalance(aTokenCollateral, liquidator, 0);
   await setBalance(aTokenCollateral, borrower, seizeTokens);
   await pretendBorrow(aTokenCollateral, borrower, 0, 1, 0);
@@ -55,11 +59,19 @@ async function seize(aToken, liquidator, borrower, seizeAmount) {
 describe('AToken', function () {
   let root, liquidator, borrower, accounts;
   let aToken, aTokenCollateral;
+  const protocolSeizeShareMantissa = 2.8e16; // 2.8%
+  const exchangeRate = bnbExp(.2);	
 
+  const protocolShareTokens = seizeTokens.multipliedBy(protocolSeizeShareMantissa).dividedBy(bnbExp(1));
+  const liquidatorShareTokens = seizeTokens.minus(protocolShareTokens);
+  const addReservesAmount = protocolShareTokens.multipliedBy(exchangeRate).dividedBy(bnbExp(1));
+
+  
   beforeEach(async () => {
     [root, liquidator, borrower, ...accounts] = saddle.accounts;
     aToken = await makeAToken({comptrollerOpts: {kind: 'bool'}});
     aTokenCollateral = await makeAToken({comptroller: aToken.comptroller});
+    expect(await send(aTokenCollateral, 'harnessSetExchangeRate', [exchangeRate])).toSucceed();
   });
 
   beforeEach(async () => {
@@ -157,84 +169,22 @@ describe('AToken', function () {
       expect(result).toHaveLog(['Transfer', 1], {
         from: borrower,
         to: liquidator,
-        amount: seizeTokens.toString()
+        amount: liquidatorShareTokens.toString()
       });
-      expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
-        [aToken, 'cash', repayAmount],
-        [aToken, 'borrows', -repayAmount],
-        [aToken, liquidator, 'cash', -repayAmount],
-        [aTokenCollateral, liquidator, 'tokens', seizeTokens],
-        [aToken, borrower, 'borrows', -repayAmount],
-        [aTokenCollateral, borrower, 'tokens', -seizeTokens]
-      ]));
-    });
-  });
-
-  describe('liquidateBorrow', () => {
-    it("emits a liquidation failure if borrowed asset interest accrual fails", async () => {
-      await send(aToken.interestRateModel, 'setFailBorrowRate', [true]);
-      await expect(liquidate(aToken, liquidator, borrower, repayAmount, aTokenCollateral)).rejects.toRevert("revert INTEREST_RATE_MODEL_ERROR");
-    });
-
-    it("emits a liquidation failure if collateral asset interest accrual fails", async () => {
-      await send(aTokenCollateral.interestRateModel, 'setFailBorrowRate', [true]);
-      await expect(liquidate(aToken, liquidator, borrower, repayAmount, aTokenCollateral)).rejects.toRevert("revert INTEREST_RATE_MODEL_ERROR");
-    });
-
-    it("returns error from liquidateBorrowFresh without emitting any extra logs", async () => {
-      expect(await liquidate(aToken, liquidator, borrower, 0, aTokenCollateral)).toHaveTokenFailure('INVALID_CLOSE_AMOUNT_REQUESTED', 'LIQUIDATE_CLOSE_AMOUNT_IS_ZERO');
-    });
-
-    it("returns success from liquidateBorrowFresh and transfers the correct amounts", async () => {
-      const beforeBalances = await getBalances([aToken, aTokenCollateral], [liquidator, borrower]);
-      const result = await liquidate(aToken, liquidator, borrower, repayAmount, aTokenCollateral);
-      const gasCost = await bnbGasCost(result);
-      const afterBalances = await getBalances([aToken, aTokenCollateral], [liquidator, borrower]);
-      expect(result).toSucceed();
-      expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
-        [aToken, 'cash', repayAmount],
-        [aToken, 'borrows', -repayAmount],
-        [aToken, liquidator, 'bnb', -gasCost],
-        [aToken, liquidator, 'cash', -repayAmount],
-        [aTokenCollateral, liquidator, 'bnb', -gasCost],
-        [aTokenCollateral, liquidator, 'tokens', seizeTokens],
-        [aToken, borrower, 'borrows', -repayAmount],
-        [aTokenCollateral, borrower, 'tokens', -seizeTokens]
-      ]));
-    });
-  });
-
-  describe('seize', () => {
-    // XXX verify callers are properly checked
-
-    it("fails if seize is not allowed", async () => {
-      await send(aToken.comptroller, 'setSeizeAllowed', [false]);
-      expect(await seize(aTokenCollateral, liquidator, borrower, seizeTokens)).toHaveTrollReject('LIQUIDATE_SEIZE_COMPTROLLER_REJECTION', 'MATH_ERROR');
-    });
-
-    it("fails if aTokenBalances[borrower] < amount", async () => {
-      await setBalance(aTokenCollateral, borrower, 1);
-      expect(await seize(aTokenCollateral, liquidator, borrower, seizeTokens)).toHaveTokenMathFailure('LIQUIDATE_SEIZE_BALANCE_DECREMENT_FAILED', 'INTEGER_UNDERFLOW');
-    });
-
-    it("fails if aTokenBalances[liquidator] overflows", async () => {
-      await setBalance(aTokenCollateral, liquidator, '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
-      expect(await seize(aTokenCollateral, liquidator, borrower, seizeTokens)).toHaveTokenMathFailure('LIQUIDATE_SEIZE_BALANCE_INCREMENT_FAILED', 'INTEGER_OVERFLOW');
-    });
-
-    it("succeeds, updates balances, and emits Transfer event", async () => {
-      const beforeBalances = await getBalances([aTokenCollateral], [liquidator, borrower]);
-      const result = await seize(aTokenCollateral, liquidator, borrower, seizeTokens);
-      const afterBalances = await getBalances([aTokenCollateral], [liquidator, borrower]);
-      expect(result).toSucceed();
-      expect(result).toHaveLog('Transfer', {
+      expect(result).toHaveLog(['Transfer', 2], {
         from: borrower,
-        to: liquidator,
-        amount: seizeTokens.toString()
+        to: aTokenCollateral._address,
+        amount: protocolShareTokens.toString()
       });
       expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
-        [aTokenCollateral, liquidator, 'tokens', seizeTokens],
-        [aTokenCollateral, borrower, 'tokens', -seizeTokens]
+        [aToken, 'cash', repayAmount],
+        [aToken, 'borrows', -repayAmount],
+        [aToken, liquidator, 'cash', -repayAmount],
+        [aTokenCollateral, liquidator, 'tokens', liquidatorShareTokens],
+        [aToken, borrower, 'borrows', -repayAmount],
+        [aTokenCollateral, borrower, 'tokens', -seizeTokens],
+        [aTokenCollateral, aTokenCollateral._address, 'reserves', addReservesAmount],	
+        [aTokenCollateral, aTokenCollateral._address, 'tokens', -protocolShareTokens]
       ]));
     });
   });
