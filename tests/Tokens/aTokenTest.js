@@ -69,7 +69,7 @@ describe('AToken', function () {
       const aToken = await makeAToken({ supportMarket: true, interestRateModelOpts: { kind: 'jump-rate', baseRate: .05, multiplier: 0.45, kink: 0.95, jump: 5 } });
       const blocksPerYear = await call(aToken.interestRateModel, 'blocksPerYear');
       const perBlock = await call(aToken, 'borrowRatePerBlock');
-      expect(Math.abs(perBlock * 2102400  - 5e16)).toBeLessThanOrEqual(1e8);
+      expect(Math.abs(perBlock * blocksPerYear  - 5e16)).toBeLessThanOrEqual(1e8);
     });
   });
 
@@ -93,9 +93,9 @@ describe('AToken', function () {
       const borrowRate = baseRate + multiplier * kink + jump * .05;
       const expectedSuplyRate = borrowRate * .99;
 
-      // const blocksPerYear = await call(aToken.interestRateModel, 'blocksPerYear');
+      const blocksPerYear = await call(aToken.interestRateModel, 'blocksPerYear');
       const perBlock = await call(aToken, 'supplyRatePerBlock');
-      expect(Math.abs(perBlock * 2102400  - expectedSuplyRate * 1e18)).toBeLessThanOrEqual(1e8);
+      expect(Math.abs(perBlock * blocksPerYear  - expectedSuplyRate * 1e18)).toBeLessThanOrEqual(1e8);
     });
   });
 
@@ -162,7 +162,7 @@ describe('AToken', function () {
     });
 
     it("reverts on overflow of principal", async () => {
-      await pretendBorrow(aToken, borrower, 1, 3,  UInt256Max());
+      await pretendBorrow(aToken, borrower, 1, 3,  '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
       await expect(call(aToken, 'borrowBalanceStored', [borrower])).rejects.toRevert("revert borrowBalanceStored: borrowBalanceStoredInternal failed");
     });
 
