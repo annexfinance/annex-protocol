@@ -56,7 +56,7 @@ async function seize(cToken, liquidator, borrower, seizeAmount) {
   return send(cToken, 'seize', [liquidator, borrower, seizeAmount]);
 }
 
-describe('CToken', function () {
+describe('AToken', function () {
   let root, liquidator, borrower, accounts;
   let cToken, cTokenCollateral;
 
