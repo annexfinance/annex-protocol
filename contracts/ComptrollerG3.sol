@@ -1247,7 +1247,7 @@ contract ComptrollerG3 is ComptrollerV3Storage, ComptrollerInterfaceG1, Comptrol
         uint supplierTokens = AToken(aToken).balanceOf(supplier);
         uint supplierDelta = mul_(supplierTokens, deltaIndex);
         uint supplierAccrued = add_(annexAccrued[supplier], supplierDelta);
-        annexAccrued[supplier] = transferANN(supplier, supplierAccrued, distributeAll ? 0 : annexClaimThreshold);;
+        annexAccrued[supplier] = transferANN(supplier, supplierAccrued, distributeAll ? 0 : annexClaimThreshold);
         emit DistributedSupplierAnnex(AToken(aToken), supplier, supplierDelta, supplyIndex.mantissa);
     }
 
