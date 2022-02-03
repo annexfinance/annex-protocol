@@ -159,21 +159,21 @@ describe('AToken', function () {
         aTokenCollateral: aTokenCollateral._address,
         seizeTokens: seizeTokens.toString()
       });
-    //   expect(result).toHaveLog(['Transfer', 0], {
-    //     from: liquidator,
-    //     to: aToken._address,
-    //     amount: repayAmount.toString()
-    //   });
-    //   expect(result).toHaveLog(['Transfer', 1], {
-    //     from: borrower,
-    //     to: liquidator,
-    //     amount: protocolShareTokens.toString()
-    //   });
-	  // expect(result).toHaveLog(['Transfer', 2], {
-    //     from: borrower,
-    //     to: aTokenCollateral._address,
-    //     amount: protocolShareTokens.toString()
-    //   });
+      expect(result).toHaveLog('Transfer', {
+        from: liquidator,
+        to: aToken._address,
+        amount: repayAmount.toString()
+      });
+      expect(result).toHaveLog('Transfer', {
+        from: borrower,
+        to: liquidator,
+        amount: protocolShareTokens.toString()
+      });
+	  expect(result).toHaveLog('Transfer', {
+        from: borrower,
+        to: aTokenCollateral._address,
+        amount: protocolShareTokens.toString()
+      });
 
     //   expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
     //     [aToken, 'cash', repayAmount],
