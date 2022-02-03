@@ -392,14 +392,14 @@ contract ComptrollerG3 is ComptrollerV3Storage, ComptrollerInterfaceG1, Comptrol
             return uint(Error.PRICE_ERROR);
         }
 
-        uint borrowCap = borrowCaps[aToken];
-        // Borrow cap of 0 corresponds to unlimited borrowing
-        if (borrowCap != 0) {
-            uint totalBorrows = AToken(aToken).totalBorrows();
-            (MathError mathErr, uint nextTotalBorrows) = addUInt(totalBorrows, borrowAmount);
-            require(mathErr == MathError.NO_ERROR, "total borrows overflow");
-            require(nextTotalBorrows < borrowCap, "market borrow cap reached");
-        }
+        // uint borrowCap = borrowCaps[aToken];
+        // // Borrow cap of 0 corresponds to unlimited borrowing
+        // if (borrowCap != 0) {
+        //     uint totalBorrows = AToken(aToken).totalBorrows();
+        //     (MathError mathErr, uint nextTotalBorrows) = addUInt(totalBorrows, borrowAmount);
+        //     require(mathErr == MathError.NO_ERROR, "total borrows overflow");
+        //     require(nextTotalBorrows < borrowCap, "market borrow cap reached");
+        // }
 
         (Error err, , uint shortfall) = getHypotheticalAccountLiquidityInternal(borrower, AToken(aToken), 0, borrowAmount);
         if (err != Error.NO_ERROR) {
@@ -412,7 +412,7 @@ contract ComptrollerG3 is ComptrollerV3Storage, ComptrollerInterfaceG1, Comptrol
         // Keep the flywheel moving
         Exp memory borrowIndex = Exp({mantissa: AToken(aToken).borrowIndex()});
         updateAnnexBorrowIndex(aToken, borrowIndex);
-        distributeBorrowerAnnex(aToken, borrower, borrowIndex);
+        distributeBorrowerAnnex(aToken, borrower, borrowIndex,false);
 
         return uint(Error.NO_ERROR);
     }
@@ -460,7 +460,7 @@ contract ComptrollerG3 is ComptrollerV3Storage, ComptrollerInterfaceG1, Comptrol
         // Keep the flywheel moving
         Exp memory borrowIndex = Exp({mantissa: AToken(aToken).borrowIndex()});
         updateAnnexBorrowIndex(aToken, borrowIndex);
-        distributeBorrowerAnnex(aToken, borrower, borrowIndex);
+        distributeBorrowerAnnex(aToken, borrower, borrowIndex,false);
 
         return uint(Error.NO_ERROR);
     }
@@ -1257,10 +1257,10 @@ contract ComptrollerG3 is ComptrollerV3Storage, ComptrollerInterfaceG1, Comptrol
      * @param aToken The market in which the borrower is interacting
      * @param borrower The address of the borrower to distribute ANN to
      */
-    function distributeBorrowerAnnex(address aToken, address borrower, Exp memory marketBorrowIndex) internal {
-        if (address(xaiVaultAddress) != address(0)) {
-            releaseToVault();
-        }
+    function distributeBorrowerAnnex(address aToken, address borrower, Exp memory marketBorrowIndex,bool distributeAll) internal {
+        // if (address(xaiVaultAddress) != address(0)) {
+        //     releaseToVault();
+        // }
 
         AnnexMarketState storage borrowState = annexBorrowState[aToken];
         Double memory borrowIndex = Double({mantissa: borrowState.index});
@@ -1272,7 +1272,7 @@ contract ComptrollerG3 is ComptrollerV3Storage, ComptrollerInterfaceG1, Comptrol
             uint borrowerAmount = div_(AToken(aToken).borrowBalanceStored(borrower), marketBorrowIndex);
             uint borrowerDelta = mul_(borrowerAmount, deltaIndex);
             uint borrowerAccrued = add_(annexAccrued[borrower], borrowerDelta);
-            annexAccrued[borrower] = borrowerAccrued;
+            annexAccrued[borrower] = transferANN(borrower, borrowerAccrued, distributeAll ? 0 : annexClaimThreshold);
             emit DistributedBorrowerAnnex(AToken(aToken), borrower, borrowerDelta, borrowIndex.mantissa);
         }
     }
@@ -1362,7 +1362,7 @@ contract ComptrollerG3 is ComptrollerV3Storage, ComptrollerInterfaceG1, Comptrol
                 Exp memory borrowIndex = Exp({mantissa: aToken.borrowIndex()});
                 updateAnnexBorrowIndex(address(aToken), borrowIndex);
                 for (j = 0; j < holders.length; j++) {
-                    distributeBorrowerAnnex(address(aToken), holders[j], borrowIndex);
+                    distributeBorrowerAnnex(address(aToken), holders[j], borrowIndex,true);
                     annexAccrued[holders[j]] = grantANNInternal(holders[j], annexAccrued[holders[j]]);
                 }
             }
