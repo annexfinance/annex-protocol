@@ -1,6 +1,8 @@
 const {
   bnbGasCost,
-  bnbUnsigned
+  bnbUnsigned,
+  UInt256Max,
+  etherExp
 } = require('../Utils/BSC');
 
 const {
