@@ -249,7 +249,7 @@ describe('AToken', function () {
       const afterBalances = await getBalances([aTokenCollateral], [liquidator, borrower]);
       expect(result).toSucceed();
      
-      expect(result). ('Transfer', {
+      expect(result).toHaveLog('Transfer', {
         from: borrower,
         to: liquidator,
         amount: liquidatorShareTokens.toString()
