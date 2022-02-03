@@ -266,8 +266,8 @@ describe('AToken', function () {
       });
   
       expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
-        [aTokenCollateral, liquidator, 'tokens', liquidatorShareTokens],
-        [aTokenCollateral, borrower, 'tokens', -seizeTokens],
+        [aTokenCollateral, liquidator, 'tokens', 0],
+        [aTokenCollateral, borrower, 'tokens', 0],
         // [aTokenCollateral, aTokenCollateral._address, 'reserves', addReservesAmount],
         // [aTokenCollateral, aTokenCollateral._address, 'tokens', -protocolShareTokens], // total supply decreases
       ]));
