@@ -1347,7 +1347,7 @@ contract ComptrollerG3 is ComptrollerV3Storage, ComptrollerInterfaceG1, Comptrol
      * @param suppliers Whether or not to claim ANN earned by supplying
      */
     function claimAnnex(address[] memory holders, AToken[] memory aTokens, bool borrowers, bool suppliers) public {
-        // uint j;
+        uint j;
         // if(address(xaiController) != address(0)) {
         //     xaiController.updateAnnexXAIMintIndex();
         // }
