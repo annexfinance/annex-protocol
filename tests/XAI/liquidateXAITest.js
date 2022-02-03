@@ -16,9 +16,9 @@ const {
   preApproveXAI
 } = require('../Utils/Annex');
 
-const repayAmount = bnbUnsigned(10e2);
-const seizeAmount = repayAmount;
-const seizeTokens = seizeAmount.mul(4); // forced
+const repayAmount = etherExp(10);
+const seizeTokens = repayAmount.multipliedBy(4);
+
 
 async function preLiquidateXAI(comptroller, xaicontroller, xai, liquidator, borrower, repayAmount, aTokenCollateral) {
   // setup for success in liquidating
@@ -60,6 +60,14 @@ describe('XAIController', function () {
   let root, liquidator, borrower, accounts;
   let aTokenCollateral;
   let comptroller, xaicontroller, xai;
+
+  const protocolSeizeShareMantissa = 2.8e16; // 2.8%
+  const exchangeRate = etherExp(.2);	
+
+  const protocolShareTokens = seizeTokens.multipliedBy(protocolSeizeShareMantissa).dividedBy(etherExp(1));
+  const liquidatorShareTokens = seizeTokens.minus(protocolShareTokens);
+  const addReservesAmount = protocolShareTokens.multipliedBy(exchangeRate).dividedBy(etherExp(1));
+  
 
   beforeEach(async () => {
     [root, liquidator, borrower, ...accounts] = saddle.accounts;
@@ -212,7 +220,7 @@ describe('XAIController', function () {
     });
 
     it("fails if aTokenBalances[liquidator] overflows", async () => {
-      await setBalance(aTokenCollateral, liquidator, '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+      await setBalance(aTokenCollateral, liquidator, UInt256Max());
       expect(await seize(aTokenCollateral, liquidator, borrower, seizeTokens)).toHaveTokenMathFailure('LIQUIDATE_SEIZE_BALANCE_INCREMENT_FAILED', 'INTEGER_OVERFLOW');
     });
 
@@ -221,11 +229,28 @@ describe('XAIController', function () {
       const result = await seize(aTokenCollateral, liquidator, borrower, seizeTokens);
       const afterBalances = await getBalancesWithXAI(xai, [aTokenCollateral], [liquidator, borrower]);
       expect(result).toSucceed();
-      expect(result).toHaveLog('Transfer', {
+      // expect(result).toHaveLog('Transfer', {
+      //   from: borrower,
+      //   to: liquidator,
+      //   amount: seizeTokens.toString()
+      // });
+
+      expect(result).toHaveLog(['Transfer', 0], {
         from: borrower,
         to: liquidator,
-        amount: seizeTokens.toString()
+        amount: liquidatorShareTokens.toString()
       });
+      expect(result).toHaveLog(['Transfer', 1], {
+        from: borrower,
+        to: aTokenCollateral._address,
+        amount: protocolShareTokens.toString()
+      });
+      expect(result).toHaveLog('ReservesAdded', {
+        benefactor: aTokenCollateral._address,
+        addAmount: addReservesAmount.toString(),
+        newTotalReserves: addReservesAmount.toString()
+      });
+
       expect(afterBalances).toEqual(await adjustBalancesWithXAI(beforeBalances, [
         [aTokenCollateral, liquidator, 'tokens', seizeTokens],
         [aTokenCollateral, borrower, 'tokens', -seizeTokens]
