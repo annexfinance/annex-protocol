@@ -177,15 +177,15 @@ describe('XAIController', function () {
   });
 
   describe('liquidateXAI', () => {
-    // it("emits a liquidation failure if borrowed asset interest accrual fails", async () => {
-    //   await send(aToken.interestRateModel, 'setFailBorrowRate', [true]);
-    //   await expect(liquidateXAI(xaicontroller, liquidator, borrower, repayAmount, aTokenCollateral)).rejects.toRevert("revert INTEREST_RATE_MODEL_ERROR");
-    // });
+    it("emits a liquidation failure if borrowed asset interest accrual fails", async () => {
+      await send(aToken.interestRateModel, 'setFailBorrowRate', [true]);
+      await expect(liquidateXAI(xaicontroller, liquidator, borrower, repayAmount, aTokenCollateral)).rejects.toRevert("revert INTEREST_RATE_MODEL_ERROR");
+    });
 
-    // it("emits a liquidation failure if collateral asset interest accrual fails", async () => {
-    //   await send(aTokenCollateral.interestRateModel, 'setFailBorrowRate', [true]);
-    //   await expect(liquidateXAI(xaicontroller, liquidator, borrower, repayAmount, aTokenCollateral)).rejects.toRevert("revert INTEREST_RATE_MODEL_ERROR");
-    // });
+    it("emits a liquidation failure if collateral asset interest accrual fails", async () => {
+      await send(aTokenCollateral.interestRateModel, 'setFailBorrowRate', [true]);
+      await expect(liquidateXAI(xaicontroller, liquidator, borrower, repayAmount, aTokenCollateral)).rejects.toRevert("revert INTEREST_RATE_MODEL_ERROR");
+    });
 
     it("returns error from liquidateXAIFresh without emitting any extra logs", async () => {
       expect(await liquidateXAI(xaicontroller, liquidator, borrower, 0, aTokenCollateral)).toHaveXAITrollFailure('REJECTION', 'XAI_LIQUIDATE_CLOSE_AMOUNT_IS_ZERO');
@@ -251,10 +251,10 @@ describe('XAIController', function () {
         newTotalReserves: addReservesAmount.toString()
       });
 
-      // expect(afterBalances).toEqual(await adjustBalancesWithXAI(beforeBalances, [
-      //   [aTokenCollateral, liquidator, 'tokens', seizeTokens],
-      //   [aTokenCollateral, borrower, 'tokens', -seizeTokens]
-      // ], xai));
+      expect(afterBalances).toEqual(await adjustBalancesWithXAI(beforeBalances, [
+        [aTokenCollateral, liquidator, 'tokens', seizeTokens],
+        [aTokenCollateral, borrower, 'tokens', -seizeTokens]
+      ], xai));
     });
   });
 });

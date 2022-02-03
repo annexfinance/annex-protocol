@@ -175,16 +175,16 @@ describe('AToken', function () {
         amount: protocolShareTokens.toString()
       });
 
-      // expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
-      //   [aToken, 'cash', repayAmount],
-      //   [aToken, 'borrows', -repayAmount],
-      //   [aToken, liquidator, 'cash', -repayAmount],
-      //   [aTokenCollateral, liquidator, 'tokens', liquidatorShareTokens],
-      //   [aToken, borrower, 'borrows', -repayAmount],
-      //   [aTokenCollateral, borrower, 'tokens', -seizeTokens],
-		  //   [aTokenCollateral, aTokenCollateral._address, 'reserves', addReservesAmount],
-      //   [aTokenCollateral, aTokenCollateral._address, 'tokens', -protocolShareTokens]
-      // ]));
+      expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
+        [aToken, 'cash', repayAmount],
+        [aToken, 'borrows', -repayAmount],
+        [aToken, liquidator, 'cash', -repayAmount],
+        [aTokenCollateral, liquidator, 'tokens', liquidatorShareTokens],
+        [aToken, borrower, 'borrows', -repayAmount],
+        [aTokenCollateral, borrower, 'tokens', -seizeTokens],
+		    [aTokenCollateral, aTokenCollateral._address, 'reserves', addReservesAmount],
+        [aTokenCollateral, aTokenCollateral._address, 'tokens', -protocolShareTokens]
+      ]));
     });
   });
 
@@ -209,18 +209,18 @@ describe('AToken', function () {
       const gasCost = await bnbGasCost(result);
       const afterBalances = await getBalances([aToken, aTokenCollateral], [liquidator, borrower]);
       expect(result).toSucceed();
-      // expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
-      //   [aToken, 'cash', repayAmount],
-      //   [aToken, 'borrows', -repayAmount],
-      //   [aToken, liquidator, 'bnb', -gasCost],
-      //   [aToken, liquidator, 'cash', -repayAmount],
-      //   [aTokenCollateral, liquidator, 'bnb', -gasCost],
-      //   [aTokenCollateral, liquidator, 'tokens', liquidatorShareTokens],
-      //   [aTokenCollateral, aTokenCollateral._address, 'reserves', addReservesAmount],
-      //   [aToken, borrower, 'borrows', -repayAmount],
-      //   [aTokenCollateral, borrower, 'tokens', -seizeTokens],
-      //   [aTokenCollateral, aTokenCollateral._address, 'tokens', -protocolShareTokens], // total supply decreases
-      // ]));
+      expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
+        [aToken, 'cash', repayAmount],
+        [aToken, 'borrows', -repayAmount],
+        [aToken, liquidator, 'bnb', -gasCost],
+        [aToken, liquidator, 'cash', -repayAmount],
+        [aTokenCollateral, liquidator, 'bnb', -gasCost],
+        [aTokenCollateral, liquidator, 'tokens', liquidatorShareTokens],
+        [aTokenCollateral, aTokenCollateral._address, 'reserves', addReservesAmount],
+        [aToken, borrower, 'borrows', -repayAmount],
+        [aTokenCollateral, borrower, 'tokens', -seizeTokens],
+        [aTokenCollateral, aTokenCollateral._address, 'tokens', -protocolShareTokens], // total supply decreases
+      ]));
     });
   });
 
@@ -264,12 +264,12 @@ describe('AToken', function () {
         newTotalReserves: addReservesAmount.toString()
       });
   
-      // expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
-      //   [aTokenCollateral, liquidator, 'tokens', liquidatorShareTokens],
-      //   [aTokenCollateral, borrower, 'tokens', -seizeTokens],
-      //   [aTokenCollateral, aTokenCollateral._address, 'reserves', addReservesAmount],
-      //   [aTokenCollateral, aTokenCollateral._address, 'tokens', -protocolShareTokens], // total supply decreases
-      // ]));
+      expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
+        [aTokenCollateral, liquidator, 'tokens', liquidatorShareTokens],
+        [aTokenCollateral, borrower, 'tokens', -seizeTokens],
+        [aTokenCollateral, aTokenCollateral._address, 'reserves', addReservesAmount],
+        [aTokenCollateral, aTokenCollateral._address, 'tokens', -protocolShareTokens], // total supply decreases
+      ]));
     });
   });
 });
