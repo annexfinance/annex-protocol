@@ -18,7 +18,7 @@ const {
   preApproveXAI
 } = require('../Utils/Annex');
 
-const repayAmount = etherExp(10e2);
+const repayAmount = etherExp(10);
 const seizeTokens = repayAmount.multipliedBy(4);
 
 
