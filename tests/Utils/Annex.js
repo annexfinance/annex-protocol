@@ -433,10 +433,10 @@ async function adjustBalancesWithXAI(balances, deltas, xai) {
         ([aToken, key, diff] = delta);
         account = aToken._address;
       }
-      balances[aToken._address][account][key] = balances[aToken._address][account][key].add(diff);
+      balances[aToken._address][account][key] = balances[aToken._address][account][key].add(diff.toString());
     } else {
       [aToken, account, key, diff] = delta;
-      balances[xai._address][account][key] = balances[xai._address][account][key].add(diff);
+      balances[xai._address][account][key] = balances[xai._address][account][key].add(diff.toString());
     }
   }
   return balances;
