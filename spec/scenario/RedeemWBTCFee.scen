@@ -14,7 +14,7 @@ Test "Mint WBTC then Redeem All"
     FastForward 2 Blocks
     Redeem Geoff 500e8 fWBTC
     Assert Equal (Bep20 fWBTC TokenBalance Geoff) Zero
-    Assert Equal (Bep20 WBTC TokenBalance Geoff) 6.9995e9
+    Assert Equal (Bep20 WBTC TokenBalance Geoff) 70e8
 
 Test "Mint WBTC, Enter and then Redeem All"
     NewFeeComptroller
@@ -31,7 +31,7 @@ Test "Mint WBTC, Enter and then Redeem All"
     EnterMarkets Geoff fWBTC
     Redeem Geoff 500e8 fWBTC
     Assert Equal (Bep20 fWBTC TokenBalance Geoff) Zero
-    Assert Equal (Bep20 WBTC TokenBalance Geoff) 6.9995e9
+    Assert Equal (Bep20 WBTC TokenBalance Geoff) 70e8
 
 Test "Mint WBTC then Redeem Part"
     NewFeeComptroller
@@ -47,7 +47,7 @@ Test "Mint WBTC then Redeem Part"
     FastForward 2 Blocks
     Redeem Geoff 250e8 fWBTC
     Assert Equal (Bep20 fWBTC TokenBalance Geoff) 250e8
-    Assert Equal (Bep20 WBTC TokenBalance Geoff) 4.49975e9
+    Assert Equal (Bep20 WBTC TokenBalance Geoff) 45e8
 
 Test "Mint WBTC then Redeem Too Much"
     NewFeeComptroller
@@ -100,7 +100,7 @@ Test "Mint WBTC then redeem with interest - no reserves"
     Assert Equal (AToken fWBTC ExchangeRate) 0.11
     -- Now redeem all with interest
     Redeem Geoff 500e8 fWBTC
-    Assert Equal (Bep20 WBTC TokenBalance Geoff) 5.49945e9
+    Assert Equal (Bep20 WBTC TokenBalance Geoff) 55e8
     Assert Equal (Bep20 WBTC TokenBalance fWBTC) 0e8
     Assert Equal (Bep20 fWBTC TokenBalance Geoff) 0e8
     Assert Equal (AToken fWBTC UnderlyingBalance Geoff) 0e8
@@ -152,7 +152,7 @@ Test "Mint WBTC then redeem with reserves and interest"
     Assert Equal (AToken fWBTC ExchangeRate) 0.108
     -- Now redeem all with interest
     Redeem Geoff 500e8 fWBTC
-    Assert Equal (Bep20 WBTC TokenBalance Geoff) 5.39946e9
+    Assert Equal (Bep20 WBTC TokenBalance Geoff) 54e8
     Assert Equal (Bep20 WBTC TokenBalance fWBTC) 1e8
     Assert Equal (Bep20 fWBTC TokenBalance Geoff) 0e8
     Assert Equal (AToken fWBTC Reserves) 1e8

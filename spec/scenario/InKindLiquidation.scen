@@ -140,8 +140,9 @@ Test "Proper In-Kind Liquidation"
     --
     -- And see what they are now
     Assert Equal (AToken aBAT ExchangeRate) 4e9 --- XXX: Verify this
-    Assert Equal (Bep20 aBAT TokenBalance Geoff) 49.45e9 -- 1:1 -> 1 x 2e18 x 1.1 ÷ 4e9 [exchange rate] = 0.55e9 -> Torrey
-    Assert Equal (Bep20 aBAT TokenBalance Torrey) 0.55e9 -- didn't have any beforehand
+    -- effective liquidation incentive after deducting protocolSeizeShare is 1.1 * (1-.028) = 1.0692
+    Assert Equal (Bep20 aBAT TokenBalance Geoff) 49.45e9 -- 1:1 -> 1 x 2e18 x 1.0692 ÷ 4e9 [exchange rate] = 0.55e9 -> Torrey
+    Assert Equal (Bep20 aBAT TokenBalance Torrey) 0.5346e9 -- didn't have any beforehand
     Assert Equal (Bep20 BAT TokenBalance Torrey) 0e18 -- repaid
     Assert Equal (Bep20 BAT TokenBalance aBAT) 101e18 -- had 100e18, lent 1e18 to geoff, repaid 2
     Assert Equal (AToken aBAT BorrowBalanceStored Geoff) 99e18 -- less closed amount
@@ -237,7 +238,7 @@ Test "When price oracle for collateral token is whack"
     Assert Equal (Comptroller Liquidity Geoff) -1e18
     -- Okay, so we should be able to liquidate, so let's do that.
     Prep Torrey 10e18 BAT aBAT
-    PriceOracle SetPrice aBAT 115792089237316195423570985008687907853269984665640564039457.584007913129639935 -- UInt256Max
+    PriceOracle SetPrice aBAT 1.15792e59
     AllowFailures
     Liquidate Torrey "->" Geoff 2e18 aBAT "Seizing" aBAT
     Assert Revert "revert multiplication overflow"
