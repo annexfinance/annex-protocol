@@ -710,7 +710,7 @@ contract AToken is ATokenInterface, Exponential, TokenErrorReporter {
                  return failOpaque(Error.MATH_ERROR, FailureInfo.REDEEM_FEE_CALCULATION_FAILED, uint(vars.mathErr));
              }
 
-             doTransferOut(address(uint160(IComptroller(address(comptroller)).treasuryAddress())), feeAmount);
+            //  doTransferOut(address(uint160(IComptroller(address(comptroller)).treasuryAddress())), feeAmount);
 
              emit RedeemFee(redeemer, feeAmount, vars.redeemTokens);
          } else {
