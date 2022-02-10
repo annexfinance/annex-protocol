@@ -603,6 +603,7 @@ contract AToken is ATokenInterface, Exponential, TokenErrorReporter {
         uint accountTokensNew;
     }
 
+
     /**
      * @notice User redeems aTokens in exchange for the underlying asset
      * @dev Assumes interest has already been accrued up to the current block
