@@ -14,7 +14,8 @@ Test "Mint then Redeem All"
     FastForward 2 Blocks
     Redeem Geoff 500e8 aZRX
     Assert Equal (Bep20 aZRX TokenBalance Geoff) Zero
-    Assert Equal (Bep20 ZRX TokenBalance Geoff) 70e18
+    Assert Equal (Bep20 ZRX TokenBalance Geoff) 6.9995e19
+    Assert Equal (Bep20 ZRX TokenBalance Jared) 5e15
 
 Test "Mint, Enter and then Redeem All"
     NewFeeComptroller
@@ -31,7 +32,7 @@ Test "Mint, Enter and then Redeem All"
     EnterMarkets Geoff aZRX
     Redeem Geoff 500e8 aZRX
     Assert Equal (Bep20 aZRX TokenBalance Geoff) Zero
-    Assert Equal (Bep20 ZRX TokenBalance Geoff) 70e18
+    Assert Equal (Bep20 ZRX TokenBalance Geoff) 6.9995e19
 
 Test "Mint then Redeem Part"
     NewFeeComptroller
@@ -47,7 +48,7 @@ Test "Mint then Redeem Part"
     FastForward 2 Blocks
     Redeem Geoff 250e8 aZRX
     Assert Equal (Bep20 aZRX TokenBalance Geoff) 250e8
-    Assert Equal (Bep20 ZRX TokenBalance Geoff) 45e18
+    Assert Equal (Bep20 ZRX TokenBalance Geoff) 4.49975e19
 
 Test "Mint then Redeem Too Much"
     NewFeeComptroller
@@ -100,7 +101,7 @@ Test "Mint then redeem with interest - no reserves"
     Assert Equal (AToken aZRX ExchangeRate) 1.1e9
     -- Now redeem all with interest
     Redeem Geoff 500e8 aZRX
-    Assert Equal (Bep20 ZRX TokenBalance Geoff) 55e18
+    Assert Equal (Bep20 ZRX TokenBalance Geoff) 5.49945e19
     Assert Equal (Bep20 ZRX TokenBalance aZRX) 0e18
     Assert Equal (Bep20 aZRX TokenBalance Geoff) 0e8
     Assert Equal (AToken aZRX UnderlyingBalance Geoff) 0e18
@@ -152,7 +153,7 @@ Test "Mint then redeem with reserves and interest"
     Assert Equal (AToken aZRX ExchangeRate) 1.08e9
     -- Now redeem all with interest
     Redeem Geoff 500e8 aZRX
-    Assert Equal (Bep20 ZRX TokenBalance Geoff) 54e18
+    Assert Equal (Bep20 ZRX TokenBalance Geoff) 5.39946e19
     Assert Equal (Bep20 ZRX TokenBalance aZRX) 1e18
     Assert Equal (Bep20 aZRX TokenBalance Geoff) 0e8
     Assert Equal (AToken aZRX Reserves) 1e18

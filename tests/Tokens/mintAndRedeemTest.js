@@ -1,7 +1,6 @@
 const {
   bnbUnsigned,
-  bnbMantissa,
-  UInt256Max
+  bnbMantissa
 } = require('../Utils/BSC');
 
 const {
@@ -23,8 +22,8 @@ const mintAmount = bnbUnsigned(10e4);
 const mintTokens = mintAmount.div(exchangeRate);
 const redeemTokens = bnbUnsigned(10e3);
 const redeemAmount = redeemTokens.mul(exchangeRate);
-// const redeemedAmount = redeemAmount.mul(bnbUnsigned(9999e14)).div(bnbUnsigned(1e18));
-// const feeAmount = redeemAmount.mul(bnbUnsigned(1e14)).div(bnbUnsigned(1e18));
+const redeemedAmount = redeemAmount.mul(bnbUnsigned(9999e14)).div(bnbUnsigned(1e18));
+const feeAmount = redeemAmount.mul(bnbUnsigned(1e14)).div(bnbUnsigned(1e18));
 
 async function preMint(aToken, minter, mintAmount, mintTokens, exchangeRate) {
   await preApprove(aToken, minter, mintAmount);
@@ -60,11 +59,11 @@ async function redeemFreshAmount(aToken, redeemer, redeemTokens, redeemAmount) {
 }
 
 describe('AToken', function () {
-  let root, minter, redeemer, accounts;
+  let root, minter, redeemer, user1, devFee, accounts;
   let aToken;
   beforeEach(async () => {
-    [root, minter, redeemer, ...accounts] = saddle.accounts;
-    aToken = await makeAToken({comptrollerOpts: {kind: 'bool'}, exchangeRate});
+    [root, minter, redeemer, user1, devFee, ...accounts] = saddle.accounts;
+    aToken = await makeAToken({comptrollerOpts: {kind: 'boolFee'}, exchangeRate});
   });
 
   describe('mintFresh', () => {
@@ -200,7 +199,7 @@ describe('AToken', function () {
 
       it("fails if exchange calculation fails", async () => {
         if (redeemFresh == redeemFreshTokens) {
-          expect(await send(aToken, 'harnessSetExchangeRate', [UInt256Max()])).toSucceed();
+          expect(await send(aToken, 'harnessSetExchangeRate', ['0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'])).toSucceed();
           expect(await redeemFresh(aToken, redeemer, redeemTokens, redeemAmount)).toHaveTokenFailure('MATH_ERROR', 'REDEEM_EXCHANGE_TOKENS_CALCULATION_FAILED');
         } else {
           expect(await send(aToken, 'harnessSetExchangeRate', [0])).toSucceed();
@@ -230,21 +229,21 @@ describe('AToken', function () {
         expect(result).toSucceed();
         expect(result).toHaveLog('Redeem', {
           redeemer,
-          redeemAmount: redeemAmount.toString(),
+          redeemAmount: redeemedAmount.toString(),
           redeemTokens: redeemTokens.toString()
         });
-        // expect(result).toHaveLog('RedeemFee', {
-        //   redeemer,
-        //   feeAmount: feeAmount.toString(),
-        //   redeemTokens: redeemTokens.toString()
-        // });
-        expect(result).toHaveLog(['Transfer', 1], {
+        expect(result).toHaveLog('RedeemFee', {
+          redeemer,
+          feeAmount: feeAmount.toString(),
+          redeemTokens: redeemTokens.toString()
+        });
+        expect(result).toHaveLog(['Transfer', 2], {
           from: redeemer,
           to: aToken._address,
           amount: redeemTokens.toString()
         });
         expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
-          [aToken, redeemer, 'cash', redeemAmount],
+          [aToken, redeemer, 'cash', redeemedAmount],
           [aToken, redeemer, 'tokens', -redeemTokens],
           [aToken, 'cash', -redeemAmount],
           [aToken, 'tokens', -redeemTokens]
@@ -274,7 +273,7 @@ describe('AToken', function () {
       ).toSucceed();
       expect(await quickRedeem(aToken, redeemer, redeemTokens, {exchangeRate})).toSucceed();
       expect(redeemAmount).not.toEqualNumber(0);
-      expect(await balanceOf(aToken.underlying, redeemer)).toEqualNumber(redeemAmount);
+      expect(await balanceOf(aToken.underlying, redeemer)).toEqualNumber(redeemedAmount);
     });
 
     it("returns success from redeemFresh and redeems the right amount of underlying", async () => {
@@ -285,8 +284,8 @@ describe('AToken', function () {
         await quickRedeemUnderlying(aToken, redeemer, redeemAmount, {exchangeRate})
       ).toSucceed();
       expect(redeemAmount).not.toEqualNumber(0);
-      expect(await balanceOf(aToken.underlying, redeemer)).toEqualNumber(redeemAmount);
-      // expect(await balanceOf(aToken.underlying, devFee)).toEqualNumber(feeAmount);
+      expect(await balanceOf(aToken.underlying, redeemer)).toEqualNumber(redeemedAmount);
+      expect(await balanceOf(aToken.underlying, devFee)).toEqualNumber(feeAmount);
     });
 
     it("emits an AccrueInterest event", async () => {

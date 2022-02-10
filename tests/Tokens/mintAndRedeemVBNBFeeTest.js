@@ -20,8 +20,8 @@ const mintAmount = bnbUnsigned(1e5);
 const mintTokens = mintAmount.div(exchangeRate);
 const redeemTokens = bnbUnsigned(10e3);
 const redeemAmount = redeemTokens.mul(exchangeRate);
-// const redeemedAmount = redeemAmount.mul(bnbUnsigned(9999e14)).div(bnbUnsigned(1e18));
-// const feeAmount = redeemAmount.mul(bnbUnsigned(1e14)).div(bnbUnsigned(1e18));
+const redeemedAmount = redeemAmount.mul(bnbUnsigned(9999e14)).div(bnbUnsigned(1e18));
+const feeAmount = redeemAmount.mul(bnbUnsigned(1e14)).div(bnbUnsigned(1e18));
 
 async function preMint(aToken, minter, mintAmount, mintTokens, exchangeRate) {
   await send(aToken.comptroller, 'setMintAllowed', [true]);
@@ -62,7 +62,7 @@ describe('ABNB', () => {
 
   beforeEach(async () => {
     [root, minter, redeemer, ...accounts] = saddle.accounts;
-    aToken = await makeAToken({kind: 'abnb', comptrollerOpts: {kind: 'bool'}});
+    aToken = await makeAToken({kind: 'abnb', comptrollerOpts: {kind: 'boolFee'}});
     await fastForward(aToken, 1);
   });
 
@@ -118,7 +118,7 @@ describe('ABNB', () => {
         expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
           [aToken, 'bnb', -redeemAmount],
           [aToken, 'tokens', -redeemTokens],
-          [aToken, redeemer, 'bnb', redeemAmount.sub(await bnbGasCost(receipt))],
+          [aToken, redeemer, 'bnb', redeemedAmount.sub(await bnbGasCost(receipt))],
           [aToken, redeemer, 'tokens', -redeemTokens]
         ]));
       });

@@ -10,10 +10,11 @@ Test "Mint then Redeem All"
     Invariant Static (AToken aBNB ExchangeRateStored)
     -- Now redeem after some time
     FastForward 2 Blocks
-    Expect Changes (BNBBalance Geoff) +0.005e18
+    Expect Changes (BNBBalance Geoff) +4.9995e15
     RedeemBnb Geoff 10e8 aBNB
     Assert Equal (Bep20 aBNB TokenBalance Geoff) Zero
     Assert Equal (AToken aBNB UnderlyingBalance Geoff) Zero
+    Expect Changes (BNBBalance Geoff) 5e14
 
 Test "Mint then Redeem Part"
     NewFeeComptroller
@@ -25,7 +26,7 @@ Test "Mint then Redeem Part"
     Invariant Static (AToken aBNB ExchangeRateStored)
     -- Now redeem after some time
     FastForward 2 Blocks
-    Expect Changes (BNBBalance Geoff) +0.001e18
+    Expect Changes (BNBBalance Geoff) +9.999e14
     RedeemBnb Geoff 2e8 aBNB
     Assert Equal (Bep20 aBNB TokenBalance Geoff) 8e8
     Assert Equal (AToken aBNB UnderlyingBalance Geoff) 0.004e18
