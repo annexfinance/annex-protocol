@@ -117,7 +117,18 @@ contract ATokenStorage {
     /**
      * @notice Share of seized collateral that is added to reserves
      */
-    uint public constant protocolSeizeShareMantissa = 2.8e16; //2.8%
+    uint public constant protocolSeizeShareMantissa = 5e16; //5%
+
+    /**
+     * @notice liquidator seize percentage is 15% of total liquidated amount
+     */
+    uint public constant protocolLiquidatorSeizeShareMantissa = 15e16; //5%
+
+    /**
+     * @notice liquidator seize percentage is 10% of total liquidated amount
+     */
+    uint public constant protocolLiquidatorSeizeTokenShareMantissa = 10e16; //5%
+
 }
 
 contract ATokenInterface is ATokenStorage {

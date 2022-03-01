@@ -58,11 +58,21 @@ async function seize(aToken, liquidator, borrower, seizeAmount) {
 describe('AToken', function () {
   let root, liquidator, borrower, accounts;
   let aToken, aTokenCollateral;
-  const protocolSeizeShareMantissa = 2.8e16; // 2.8%
+  const protocolLiquidatorSeizeShareMantissa = 15e16; // 15%
+  const protocolSeizeShareMantissa = 5e16; // 5%
+  const protocolLiquidatorSeizeTokenShareMantissa = 10e16; // 10%
   const exchangeRate = etherExp(.2);	
 
-  const protocolShareTokens = seizeTokens.multipliedBy(protocolSeizeShareMantissa).dividedBy(etherExp(1));
-  const liquidatorShareTokens = seizeTokens.minus(protocolShareTokens);
+  // const protocolShareTokens = seizeTokens.multipliedBy(protocolSeizeShareMantissa).dividedBy(etherExp(1));
+  // const liquidatorShareTokens = seizeTokens.minus(protocolShareTokens);
+  // const addReservesAmount = protocolShareTokens.multipliedBy(exchangeRate).dividedBy(etherExp(1));
+  //15%
+  const protocolTokens = seizeTokens.multipliedBy(protocolLiquidatorSeizeShareMantissa).dividedBy(etherExp(1));
+  //5%
+  const protocolShareTokens = protocolTokens.multipliedBy(protocolSeizeShareMantissa).dividedBy(etherExp(1));
+  // 10%
+  const liquidatorShareTokens = protocolTokens.multipliedBy(protocolLiquidatorSeizeTokenShareMantissa).dividedBy(etherExp(1));
+
   const addReservesAmount = protocolShareTokens.multipliedBy(exchangeRate).dividedBy(etherExp(1));
   
   beforeEach(async () => {
