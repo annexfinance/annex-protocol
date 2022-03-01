@@ -37,4 +37,3 @@ Test "Not able to seize tokens with a malicious unlisted aToken"
     EvilSeize aEVL 1e9 aZRX seizer:Geoff seizee:Torrey
     -- The caller must be from another aToken market, thus this fails
     Assert Failure COMPTROLLER_REJECTION LIQUIDATE_SEIZE_COMPTROLLER_REJECTION MARKET_NOT_LISTED
-    
