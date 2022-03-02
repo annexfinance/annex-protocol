@@ -98,61 +98,6 @@ Test "Liqidate in-kind beyond max close"
     Liquidate Torrey "->" Geoff 20e18 aBAT "Seizing" aBAT
     Assert Failure COMPTROLLER_REJECTION LIQUIDATE_COMPTROLLER_REJECTION TOO_MUCH_REPAY
 
-Test "Proper In-Kind Liquidation"
-    InKindBorrow borrowAmount:1e18 borrowRate:0.000005
-    Assert Equal (AToken aBAT BorrowBalance Geoff) 1e18
-    Assert Equal (AToken aBAT TotalBorrows) 1e18
-    Assert Equal (Bep20 BAT TokenBalance Geoff) 1e18
-    Assert Equal (Bep20 BAT TokenBalance aBAT) 99e18
-    Assert Equal (Comptroller Liquidity Geoff) 49e18 -- ( ( 1.0 * 100e18 * 0.5 ) - ( 1.0 * 1e18 ) ) / 1e18
-    -- Prices are 1:1 (in-kind) and collateral factor is 0.5,
-    -- thus supplying 100e18 aBAT gives the user 50e18
-    -- capacity of BAT. User only borrowed 1BAT, but after
-    -- a lot blocks at a 0.0005% interest rate, he'll be
-    -- underwater. Note: with a reserve rate of zero, that
-    -- interest will be paid back to himself as supply
-    -- but that will be discounted by 50% by the collateral factor.
-    -- Thus, we will need to accumulate for twice as many blocks
-    -- to end up where we'd usually be underwater
-    FastForward 20000000 Blocks -- 1e18 * (1 + 20000000 * 0.000005)
-    AccrueInterest aBAT -- Note: we have to accrue interest
-                        -- since it's not automatic for liquidity
-    Assert Equal (AToken aBAT BorrowBalanceStored Geoff) 101e18
-    Assert Equal (AToken aBAT TotalBorrows) 101e18
-    -- Check user liquidity and verify < 0
-    Assert Equal (Comptroller Liquidity Geoff) -1e18 -- ( ( 1.0 * ( 100e18 + 100e18 ) * 0.5 ) - ( 101 * 1e18 ) ) / 1e18
-    -- Okay, so we should be able to liquidate, so let's do that.
-    Prep Torrey 2e18 BAT aBAT
-    --
-    -- Let's check how values start before liquidation
-    -- Note: we're going to be some-what exhausive in what we check
-    Invariant Remains (Bep20 BAT TokenBalance Geoff) 1e18 -- all was minted, this is what was borrowed
-    Assert Equal (Bep20 BAT TokenBalance Torrey) 2e18 -- from prep above
-    Assert Equal (Bep20 BAT TokenBalance aBAT) 99e18 -- from minting minus 1e18 lent to geoff
-    Assert Equal (Bep20 aBAT TokenBalance Geoff) 50e9 -- from minting
-    Assert Equal (Bep20 aBAT TokenBalance Torrey) 0e9 -- never had any
-    Invariant Remains (Bep20 BAT TokenBalance Geoff) 1e18 -- original amount borrowed
-    Assert Equal (AToken aBAT BorrowBalanceStored Geoff) 101e18 -- all that interest
-    Assert Equal (AToken aBAT TotalBorrows) 101e18 -- all those borrowers
-    Assert Equal (AToken aBAT ExchangeRate) 4e9 --- XXX: Verify this
-    -- Do the liquidation
-    Liquidate Torrey "->" Geoff 2e18 aBAT "Seizing" aBAT -- should now take twice as much collateral
-    --
-    -- And see what they are now
-    Assert Equal (AToken aBAT ExchangeRate) 4e9 --- XXX: Verify this
-    Assert Equal (Bep20 aBAT TokenBalance Geoff) 49.45e9 -- 1:1 -> 1 x 2e18 x 1.1 ÷ 4e9 [exchange rate] = 0.55e9 -> Torrey
-    Assert Equal (Bep20 aBAT TokenBalance Torrey) 0.55e9 -- didn't have any beforehand
-    Assert Equal (Bep20 BAT TokenBalance Torrey) 0e18 -- repaid
-    Assert Equal (Bep20 BAT TokenBalance aBAT) 101e18 -- had 100e18, lent 1e18 to geoff, repaid 2
-    Assert Equal (AToken aBAT BorrowBalanceStored Geoff) 99e18 -- less closed amount
-    Assert Equal (AToken aBAT TotalBorrows) 99e18 --
-    -- Prices are 1:1 and collateral factor is 0.5
-    -- User now has 49.45e9 outstanding supply (yielding 98.9 borrowing capacity due
-    -- to the collateral factor (0.5) and exchange rate (4e9)).
-    -- The user also has a 99e18 borrow outstanding which is weighted 1:1.
-    -- Thus the liquidity is (98.9-99)e18 or -0.1e18.
-    Assert Equal (Comptroller Liquidity Geoff) -0.1e18
-
 Test "Liquidate exactly zero"
     InKindBorrow borrowAmount:1e18 borrowRate:0.000005
     Assert Equal (AToken aBAT BorrowBalance Geoff) 1e18
@@ -237,7 +182,7 @@ Test "When price oracle for collateral token is whack"
     Assert Equal (Comptroller Liquidity Geoff) -1e18
     -- Okay, so we should be able to liquidate, so let's do that.
     Prep Torrey 10e18 BAT aBAT
-    PriceOracle SetPrice aBAT 115792089237316195423570985008687907853269984665640564039457.584007913129639935 -- UInt256Max
+    PriceOracle SetPrice aBAT 1.15792e59
     AllowFailures
     Liquidate Torrey "->" Geoff 2e18 aBAT "Seizing" aBAT
     Assert Revert "revert multiplication overflow"

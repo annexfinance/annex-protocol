@@ -1,6 +1,9 @@
 const {
   bnbGasCost,
-  bnbUnsigned
+  bnbUnsigned,
+  etherMantissa,
+  UInt256Max,
+  etherExp
 } = require('../Utils/BSC');
 
 const {
@@ -13,9 +16,8 @@ const {
   preApprove
 } = require('../Utils/Annex');
 
-const repayAmount = bnbUnsigned(10e2);
-const seizeAmount = repayAmount;
-const seizeTokens = seizeAmount.mul(4); // forced
+const repayAmount = etherExp(10);
+const seizeTokens = repayAmount.multipliedBy(4);
 
 async function preLiquidate(aToken, liquidator, borrower, repayAmount, aTokenCollateral) {
   // setup for success in liquidating
@@ -30,6 +32,7 @@ async function preLiquidate(aToken, liquidator, borrower, repayAmount, aTokenCol
   await send(aToken.interestRateModel, 'setFailBorrowRate', [false]);
   await send(aTokenCollateral.interestRateModel, 'setFailBorrowRate', [false]);
   await send(aTokenCollateral.comptroller, 'setCalculatedSeizeTokens', [seizeTokens]);
+  await send(aTokenCollateral, 'harnessSetTotalSupply', [etherExp(10)]);
   await setBalance(aTokenCollateral, liquidator, 0);
   await setBalance(aTokenCollateral, borrower, seizeTokens);
   await pretendBorrow(aTokenCollateral, borrower, 0, 1, 0);
@@ -55,11 +58,28 @@ async function seize(aToken, liquidator, borrower, seizeAmount) {
 describe('AToken', function () {
   let root, liquidator, borrower, accounts;
   let aToken, aTokenCollateral;
+  const protocolLiquidatorSeizeShareMantissa = 15e16; // 15%
+  const protocolSeizeShareMantissa = 5e16; // 5%
+  const protocolLiquidatorSeizeTokenShareMantissa = 10e16; // 10%
+  const exchangeRate = etherExp(.2);	
 
+  // const protocolShareTokens = seizeTokens.multipliedBy(protocolSeizeShareMantissa).dividedBy(etherExp(1));
+  // const liquidatorShareTokens = seizeTokens.minus(protocolShareTokens);
+  // const addReservesAmount = protocolShareTokens.multipliedBy(exchangeRate).dividedBy(etherExp(1));
+  //15%
+  const protocolTokens = seizeTokens.multipliedBy(protocolLiquidatorSeizeShareMantissa).dividedBy(etherExp(1));
+  //5%
+  const protocolShareTokens = protocolTokens.multipliedBy(protocolSeizeShareMantissa).dividedBy(etherExp(1));
+  // 10%
+  const liquidatorShareTokens = protocolTokens.multipliedBy(protocolLiquidatorSeizeTokenShareMantissa).dividedBy(etherExp(1));
+
+  const addReservesAmount = protocolShareTokens.multipliedBy(exchangeRate).dividedBy(etherExp(1));
+  
   beforeEach(async () => {
     [root, liquidator, borrower, ...accounts] = saddle.accounts;
     aToken = await makeAToken({comptrollerOpts: {kind: 'bool'}});
     aTokenCollateral = await makeAToken({comptroller: aToken.comptroller});
+    expect(await send(aTokenCollateral, 'harnessSetExchangeRate', [exchangeRate])).toSucceed();
   });
 
   beforeEach(async () => {
@@ -149,23 +169,31 @@ describe('AToken', function () {
         aTokenCollateral: aTokenCollateral._address,
         seizeTokens: seizeTokens.toString()
       });
-      expect(result).toHaveLog(['Transfer', 0], {
+      expect(result).toHaveLog(['Transfer',0], {
         from: liquidator,
         to: aToken._address,
         amount: repayAmount.toString()
       });
-      expect(result).toHaveLog(['Transfer', 1], {
+      expect(result).toHaveLog(['Transfer',1], {
         from: borrower,
         to: liquidator,
-        amount: seizeTokens.toString()
+        amount: liquidatorShareTokens.toString()
       });
+	  expect(result).toHaveLog(['Transfer',2], {
+        from: borrower,
+        to: aTokenCollateral._address,
+        amount: protocolShareTokens.toString()
+      });
+
       expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
         [aToken, 'cash', repayAmount],
         [aToken, 'borrows', -repayAmount],
         [aToken, liquidator, 'cash', -repayAmount],
-        [aTokenCollateral, liquidator, 'tokens', seizeTokens],
+        [aTokenCollateral, liquidator, 'tokens', liquidatorShareTokens],
         [aToken, borrower, 'borrows', -repayAmount],
-        [aTokenCollateral, borrower, 'tokens', -seizeTokens]
+        [aTokenCollateral, borrower, 'tokens', -seizeTokens],
+		    [aTokenCollateral, aTokenCollateral._address, 'reserves', addReservesAmount],
+        [aTokenCollateral, aTokenCollateral._address, 'tokens', -protocolShareTokens]
       ]));
     });
   });
@@ -197,9 +225,11 @@ describe('AToken', function () {
         [aToken, liquidator, 'bnb', -gasCost],
         [aToken, liquidator, 'cash', -repayAmount],
         [aTokenCollateral, liquidator, 'bnb', -gasCost],
-        [aTokenCollateral, liquidator, 'tokens', seizeTokens],
+        [aTokenCollateral, liquidator, 'tokens', liquidatorShareTokens],
+        [aTokenCollateral, aTokenCollateral._address, 'reserves', addReservesAmount],
         [aToken, borrower, 'borrows', -repayAmount],
-        [aTokenCollateral, borrower, 'tokens', -seizeTokens]
+        [aTokenCollateral, borrower, 'tokens', -seizeTokens],
+        [aTokenCollateral, aTokenCollateral._address, 'tokens', -protocolShareTokens], // total supply decreases
       ]));
     });
   });
@@ -218,7 +248,7 @@ describe('AToken', function () {
     });
 
     it("fails if aTokenBalances[liquidator] overflows", async () => {
-      await setBalance(aTokenCollateral, liquidator, '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+      await setBalance(aTokenCollateral, liquidator, UInt256Max());
       expect(await seize(aTokenCollateral, liquidator, borrower, seizeTokens)).toHaveTokenMathFailure('LIQUIDATE_SEIZE_BALANCE_INCREMENT_FAILED', 'INTEGER_OVERFLOW');
     });
 
@@ -227,14 +257,28 @@ describe('AToken', function () {
       const result = await seize(aTokenCollateral, liquidator, borrower, seizeTokens);
       const afterBalances = await getBalances([aTokenCollateral], [liquidator, borrower]);
       expect(result).toSucceed();
-      expect(result).toHaveLog('Transfer', {
+     
+      expect(result).toHaveLog(['Transfer', 0], {
         from: borrower,
         to: liquidator,
-        amount: seizeTokens.toString()
+        amount: liquidatorShareTokens.toString()
       });
+      expect(result).toHaveLog(['Transfer', 1], {
+        from: borrower,
+        to: aTokenCollateral._address,
+        amount: protocolShareTokens.toString()
+      });
+      expect(result).toHaveLog('ReservesAdded', {
+        benefactor: aTokenCollateral._address,
+        addAmount: addReservesAmount.toString(),
+        newTotalReserves: addReservesAmount.toString()
+      });
+  
       expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
-        [aTokenCollateral, liquidator, 'tokens', seizeTokens],
-        [aTokenCollateral, borrower, 'tokens', -seizeTokens]
+        [aTokenCollateral, liquidator, 'tokens', liquidatorShareTokens],
+        [aTokenCollateral, borrower, 'tokens', -seizeTokens],
+        [aTokenCollateral, aTokenCollateral._address, 'reserves', addReservesAmount],
+        [aTokenCollateral, aTokenCollateral._address, 'tokens', -protocolShareTokens], // total supply decreases
       ]));
     });
   });
