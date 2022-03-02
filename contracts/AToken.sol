@@ -1107,11 +1107,11 @@ contract AToken is ATokenInterface, Exponential, TokenErrorReporter {
             return failOpaque(Error.MATH_ERROR, FailureInfo.LIQUIDATE_SEIZE_BALANCE_DECREMENT_FAILED, uint(vars.mathErr));
         }
         // 15 token in 100.
-        uint liquidatorSeize = mul_(seizeTokens, Exp({mantissa: protocolLiquidatorSeizeShareMantissa}));
+        // uint liquidatorSeize = mul_(seizeTokens, Exp({mantissa: protocolLiquidatorSeizeShareMantissa}));
         // 5 token in 15.
-        vars.protocolSeizeTokens = mul_(liquidatorSeize, Exp({mantissa: protocolSeizeShareMantissa}));
+        vars.protocolSeizeTokens = mul_(seizeTokens, Exp({mantissa: protocolSeizeShareMantissa}));
         // 10 token in 15.
-        vars.liquidatorSeizeTokens = mul_(liquidatorSeize, Exp({mantissa: protocolLiquidatorSeizeTokenShareMantissa}));
+        vars.liquidatorSeizeTokens = sub_(seizeTokens, vars.protocolSeizeTokens);
 
         (vars.mathErr, vars.exchangeRateMantissa) = exchangeRateStoredInternal();
         require(vars.mathErr == MathError.NO_ERROR, "exchange rate math error");
