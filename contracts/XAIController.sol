@@ -507,7 +507,7 @@ contract XAIController is XAIControllerStorageG2, XAIControllerErrorReporter, Ex
         return 0x4BD17003473389A42DAF6a0a729f6Fdb328BbBd7;
     }
 
-    function initialize() onlyAdmin public {
+    function initialize() public onlyAdmin {
         // The counter starts true to prevent changing it from zero to non-zero (i.e. smaller cost/refund)
         _notEntered = true;
     }

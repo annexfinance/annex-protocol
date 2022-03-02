@@ -46,7 +46,7 @@ contract AnnexAggrePriceOracle is PriceOracle {
             } else if (address(getFeed(aToken.symbol())) != address(0)) {
                 return getChainlinkPrice(getFeed(aToken.symbol()));
             } else {
-                IStdReference.ReferenceData memory data = ref.getReferenceData("CRO", "USD");
+                IStdReference.ReferenceData memory data = ref.getReferenceData("BNB", "USD");
                 return data.rate;
             }
         }else if (compareStrings(aToken.symbol(), "ANN")) {
