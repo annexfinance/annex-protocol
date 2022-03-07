@@ -1061,6 +1061,7 @@ contract AToken is ATokenInterface, Exponential, TokenErrorReporter {
     }
 
 
+
    struct SeizeInternalLocalVars {
         MathError mathErr;
         uint borrowerTokensNew;
