@@ -1266,7 +1266,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
      * @param aToken The market in which the supplier is interacting
      * @param supplier The address of the supplier to distribute ANN to
      */
-    function distributeSupplierAnnex(address aToken, address supplier) internal {
+    function distributeSupplierAnnex(address aToken, address supplier, bool distributeAll) internal {
         if (address(xaiVaultAddress) != address(0)) {
             releaseToVault();
         }
@@ -1296,7 +1296,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
      * @param aToken The market in which the borrower is interacting
      * @param borrower The address of the borrower to distribute ANN to
      */
-    function distributeBorrowerAnnex(address aToken, address borrower, Exp memory marketBorrowIndex) internal {
+    function distributeBorrowerAnnex(address aToken, address borrower, Exp memory marketBorrowIndex, bool distributeAll) internal {
         if (address(xaiVaultAddress) != address(0)) {
             releaseToVault();
         }
