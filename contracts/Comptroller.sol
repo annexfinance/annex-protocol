@@ -93,6 +93,9 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
     /// @notice Emitted when treasury percent is changed
     event NewTreasuryPercent(uint oldTreasuryPercent, uint newTreasuryPercent);
 
+    /// @notice The threshold above which the flywheel transfers Annex, in wei
+    uint public constant annexClaimThreshold = 0.001e18;
+
     /// @notice The initial Annex index for a market
     uint224 public constant annexInitialIndex = 1e36;
 
@@ -276,7 +279,7 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
 
         // Keep the flywheel moving
         updateAnnexSupplyIndex(aToken);
-        distributeSupplierAnnex(aToken, minter);
+        distributeSupplierAnnex(aToken, minter,false);
 
         return uint(Error.NO_ERROR);
     }
@@ -311,7 +314,7 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
 
         // Keep the flywheel moving
         updateAnnexSupplyIndex(aToken);
-        distributeSupplierAnnex(aToken, redeemer);
+        distributeSupplierAnnex(aToken, redeemer,false);
 
         return uint(Error.NO_ERROR);
     }
@@ -403,7 +406,7 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
         // Keep the flywheel moving
         Exp memory borrowIndex = Exp({mantissa: AToken(aToken).borrowIndex()});
         updateAnnexBorrowIndex(aToken, borrowIndex);
-        distributeBorrowerAnnex(aToken, borrower, borrowIndex);
+        distributeBorrowerAnnex(aToken, borrower, borrowIndex,false);
 
         return uint(Error.NO_ERROR);
     }
@@ -451,7 +454,7 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
         // Keep the flywheel moving
         Exp memory borrowIndex = Exp({mantissa: AToken(aToken).borrowIndex()});
         updateAnnexBorrowIndex(aToken, borrowIndex);
-        distributeBorrowerAnnex(aToken, borrower, borrowIndex);
+        distributeBorrowerAnnex(aToken, borrower, borrowIndex,false);
 
         return uint(Error.NO_ERROR);
     }
@@ -588,8 +591,8 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
 
         // Keep the flywheel moving
         updateAnnexSupplyIndex(aTokenCollateral);
-        distributeSupplierAnnex(aTokenCollateral, borrower);
-        distributeSupplierAnnex(aTokenCollateral, liquidator);
+        distributeSupplierAnnex(aTokenCollateral, borrower,false);
+        distributeSupplierAnnex(aTokenCollateral, liquidator,false);
 
         return uint(Error.NO_ERROR);
     }
@@ -642,8 +645,8 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
 
         // Keep the flywheel moving
         updateAnnexSupplyIndex(aToken);
-        distributeSupplierAnnex(aToken, src);
-        distributeSupplierAnnex(aToken, dst);
+        distributeSupplierAnnex(aToken, src, false);
+        distributeSupplierAnnex(aToken, dst,false);
 
         return uint(Error.NO_ERROR);
     }
@@ -1225,7 +1228,7 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
      * @param aToken The market in which the supplier is interacting
      * @param supplier The address of the supplier to distribute ANN to
      */
-    function distributeSupplierAnnex(address aToken, address supplier) internal {
+    function distributeSupplierAnnex(address aToken, address supplier, bool distributeAll) internal {
         if (address(xaiVaultAddress) != address(0)) {
             releaseToVault();
         }
@@ -1243,7 +1246,9 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
         uint supplierTokens = AToken(aToken).balanceOf(supplier);
         uint supplierDelta = mul_(supplierTokens, deltaIndex);
         uint supplierAccrued = add_(annexAccrued[supplier], supplierDelta);
-        annexAccrued[supplier] = supplierAccrued;
+        // annexAccrued[supplier] = supplierAccrued;
+        annexAccrued[supplier] = transferAnnex(supplier, supplierAccrued, distributeAll ? 0 : annexClaimThreshold);
+
         emit DistributedSupplierAnnex(AToken(aToken), supplier, supplierDelta, supplyIndex.mantissa);
     }
 
@@ -1253,7 +1258,7 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
      * @param aToken The market in which the borrower is interacting
      * @param borrower The address of the borrower to distribute ANN to
      */
-    function distributeBorrowerAnnex(address aToken, address borrower, Exp memory marketBorrowIndex) internal {
+    function distributeBorrowerAnnex(address aToken, address borrower, Exp memory marketBorrowIndex, bool distributeAll) internal {
         if (address(xaiVaultAddress) != address(0)) {
             releaseToVault();
         }
@@ -1268,10 +1273,31 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
             uint borrowerAmount = div_(AToken(aToken).borrowBalanceStored(borrower), marketBorrowIndex);
             uint borrowerDelta = mul_(borrowerAmount, deltaIndex);
             uint borrowerAccrued = add_(annexAccrued[borrower], borrowerDelta);
-            annexAccrued[borrower] = borrowerAccrued;
+            // annexAccrued[borrower] = borrowerAccrued;
+            annexAccrued[borrower] = transferAnnex(borrower, borrowerAccrued, distributeAll ? 0 : annexClaimThreshold);
             emit DistributedBorrowerAnnex(AToken(aToken), borrower, borrowerDelta, borrowIndex.mantissa);
         }
     }
+
+       /**
+     * @notice Transfer Annex to the user, if they are above the threshold
+     * @dev Note: If there is not enough Annex, we do not perform the transfer all.
+     * @param user The address of the user to transfer Annex to
+     * @param userAccrued The amount of Annex to (possibly) transfer
+     * @return The amount of Annex which was NOT transferred to the user
+     */
+     function transferAnnex(address user, uint userAccrued, uint threshold) internal returns (uint) {
+        if (userAccrued >= threshold && userAccrued > 0) {
+            ANN ann = ANN(getANNAddress());
+            uint annexRemaining = ann.balanceOf(address(this));
+            if (userAccrued <= annexRemaining) {
+                ann.transfer(user, userAccrued);
+                return 0;
+            }
+        }
+        return userAccrued;
+    }
+
 
     /**
      * @notice Calculate ANN accrued by a XAI minter and possibly transfer it to them
@@ -1338,14 +1364,14 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
                 Exp memory borrowIndex = Exp({mantissa: aToken.borrowIndex()});
                 updateAnnexBorrowIndex(address(aToken), borrowIndex);
                 for (j = 0; j < holders.length; j++) {
-                    distributeBorrowerAnnex(address(aToken), holders[j], borrowIndex);
+                    distributeBorrowerAnnex(address(aToken), holders[j], borrowIndex,true);
                     annexAccrued[holders[j]] = grantANNInternal(holders[j], annexAccrued[holders[j]]);
                 }
             }
             if (suppliers) {
                 updateAnnexSupplyIndex(address(aToken));
                 for (j = 0; j < holders.length; j++) {
-                    distributeSupplierAnnex(address(aToken), holders[j]);
+                    distributeSupplierAnnex(address(aToken), holders[j],true);
                     annexAccrued[holders[j]] = grantANNInternal(holders[j], annexAccrued[holders[j]]);
                 }
             }

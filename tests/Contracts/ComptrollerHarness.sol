@@ -92,12 +92,12 @@ contract ComptrollerHarness is Comptroller {
     }
 
     function harnessDistributeAllBorrowerAnnex(address aToken, address borrower, uint marketBorrowIndexMantissa) public {
-        distributeBorrowerAnnex(aToken, borrower, Exp({mantissa: marketBorrowIndexMantissa}));
+        distributeBorrowerAnnex(aToken, borrower, Exp({mantissa: marketBorrowIndexMantissa}),false);
         annexAccrued[borrower] = grantANNInternal(borrower, annexAccrued[borrower]);
     }
 
     function harnessDistributeAllSupplierAnnex(address aToken, address supplier) public {
-        distributeSupplierAnnex(aToken, supplier);
+        distributeSupplierAnnex(aToken, supplier,false);
         annexAccrued[supplier] = grantANNInternal(supplier, annexAccrued[supplier]);
     }
 
@@ -110,11 +110,11 @@ contract ComptrollerHarness is Comptroller {
     }
 
     function harnessDistributeBorrowerAnnex(address aToken, address borrower, uint marketBorrowIndexMantissa) public {
-        distributeBorrowerAnnex(aToken, borrower, Exp({mantissa: marketBorrowIndexMantissa}));
+        distributeBorrowerAnnex(aToken, borrower, Exp({mantissa: marketBorrowIndexMantissa}),false);
     }
 
     function harnessDistributeSupplierAnnex(address aToken, address supplier) public {
-        distributeSupplierAnnex(aToken, supplier);
+        distributeSupplierAnnex(aToken, supplier,false);
     }
 
     function harnessDistributeXAIMinterAnnex(address xaiMinter) public {
