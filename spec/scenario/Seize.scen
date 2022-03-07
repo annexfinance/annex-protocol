@@ -37,14 +37,3 @@ Test "Not able to seize tokens with a malicious unlisted aToken"
     EvilSeize aEVL 1e9 aZRX seizer:Geoff seizee:Torrey
     -- The caller must be from another aToken market, thus this fails
     Assert Failure COMPTROLLER_REJECTION LIQUIDATE_SEIZE_COMPTROLLER_REJECTION MARKET_NOT_LISTED
-
-Test "Able to seize tokens with a malicious listed aToken"
-    NewComptroller
-    ListedAToken ZRX aZRX initialExchangeRate:1e9
-    ListedATokenImmutable EVL aEVL initialExchangeRate:1e9 aTokenType:AEvil
-    Prep Geoff Some ZRX aZRX
-    Mint Geoff 50e18 aZRX
-    Assert Equal (Bep20 aZRX TokenBalance Geoff) 50e9
-    Expect Changes (Bep20 aZRX TokenBalance Geoff) -1e9
-    Expect Changes (Bep20 aZRX TokenBalance Torrey) +1e9
-    EvilSeize aEVL 1e9 aZRX seizer:Torrey seizee:Geoff

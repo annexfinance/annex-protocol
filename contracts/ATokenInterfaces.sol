@@ -114,6 +114,11 @@ contract ATokenStorage {
      * @notice Mapping of account addresses to outstanding borrow balances
      */
     mapping(address => BorrowSnapshot) internal accountBorrows;
+    /**
+     * @notice Share of seized collateral that is added to reserves
+     */
+    uint public constant protocolSeizeShareMantissa = 5e16; //5%
+    
 }
 
 contract ATokenInterface is ATokenStorage {

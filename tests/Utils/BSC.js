@@ -1,10 +1,13 @@
 "use strict";
-
+const BigNumber = require('bignumber.js');
 const BigNum = require('bignumber.js');
 const ethers = require('ethers');
 
 function address(n) {
   return `0x${n.toString(16).padStart(40, '0')}`;
+}
+function UInt256Max() {
+  return ethers.constants.MaxUint256;
 }
 
 function encodeParameters(types, values) {
@@ -34,6 +37,15 @@ function bnbMantissa(num, scale = 1e18) {
     return ethers.utils.bigNumberify(new BigNum(2).pow(256).plus(num).toFixed());
   return ethers.utils.bigNumberify(new BigNum(num).times(scale).toFixed());
 }
+
+function etherExp(num) { return etherMantissa(num, 1e18) }
+function etherDouble(num) { return etherMantissa(num, 1e36) }
+function etherMantissa(num, scale = 1e18) {
+  if (num < 0)
+    return new BigNumber(2).pow(256).plus(num);
+  return new BigNumber(num).times(scale);
+}
+
 
 function bnbUnsigned(num) {
   return ethers.utils.bigNumberify(new BigNum(num).toFixed());
@@ -133,6 +145,9 @@ module.exports = {
   encodeParameters,
   bnbBalance,
   bnbGasCost,
+  etherExp,
+  etherDouble,
+  etherMantissa,
   bnbExp,
   bnbDouble,
   bnbMantissa,
@@ -154,5 +169,6 @@ module.exports = {
   setTime,
 
   both,
+  UInt256Max,
   sendFallback
 };
