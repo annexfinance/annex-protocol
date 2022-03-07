@@ -552,10 +552,10 @@ describe("Flywheel", () => {
       expect(a2Accrued1).toEqualNumber(a3Accrued2.sub(a3Accrued1));
       expect(a3Accrued1).toEqualNumber(a2Accrued2.sub(a2Accrued1));
 
-      expect(txT1.gasUsed).toBeLessThan(220000);
+      expect(txT1.gasUsed).toBeLessThan(200000);
       expect(txT1.gasUsed).toBeGreaterThan(150000);
-      expect(txT2.gasUsed).toBeLessThan(150000);
-      expect(txT2.gasUsed).toBeGreaterThan(100000);
+      expect(txT2.gasUsed).toBeLessThan(200000);
+      expect(txT2.gasUsed).toBeGreaterThan(150000);
     });
   });
 
@@ -623,8 +623,8 @@ describe("Flywheel", () => {
         a1,
         bnbUnsigned(1.1e18),
       ]);
-      expect(await annexAccrued(comptroller, a1)).toEqualNumber(25e18);
-      expect(await annBalance(comptroller, a1)).toEqualNumber(0);
+      expect(await annexAccrued(comptroller, a1)).toEqualNumber(0);
+      expect(await annBalance(comptroller, a1)).toEqualNumber(25e18);
       expect(tx).toHaveLog("DistributedBorrowerAnnex", {
         aToken: mkt._address,
         borrower: a1,
