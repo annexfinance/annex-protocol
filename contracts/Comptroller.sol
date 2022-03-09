@@ -285,7 +285,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
 
         // Keep the flywheel moving
         updateAnnexSupplyIndex(aToken);
-        distributeSupplierAnnex(aToken, minter,false);
+        distributeSupplierAnnex(aToken, minter);
 
         return uint(Error.NO_ERROR);
     }
@@ -320,7 +320,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
 
         // Keep the flywheel moving
         updateAnnexSupplyIndex(aToken);
-        distributeSupplierAnnex(aToken, redeemer,false);
+        distributeSupplierAnnex(aToken, redeemer);
 
         return uint(Error.NO_ERROR);
     }
@@ -412,7 +412,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
         // Keep the flywheel moving
         Exp memory borrowIndex = Exp({mantissa: AToken(aToken).borrowIndex()});
         updateAnnexBorrowIndex(aToken, borrowIndex);
-        distributeBorrowerAnnex(aToken, borrower, borrowIndex,false);
+        distributeBorrowerAnnex(aToken, borrower, borrowIndex);
 
         return uint(Error.NO_ERROR);
     }
@@ -460,7 +460,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
         // Keep the flywheel moving
         Exp memory borrowIndex = Exp({mantissa: AToken(aToken).borrowIndex()});
         updateAnnexBorrowIndex(aToken, borrowIndex);
-        distributeBorrowerAnnex(aToken, borrower, borrowIndex,false);
+        distributeBorrowerAnnex(aToken, borrower, borrowIndex);
 
         return uint(Error.NO_ERROR);
     }
@@ -597,8 +597,8 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
 
         // Keep the flywheel moving
         updateAnnexSupplyIndex(aTokenCollateral);
-        distributeSupplierAnnex(aTokenCollateral, borrower,false);
-        distributeSupplierAnnex(aTokenCollateral, liquidator,false);
+        distributeSupplierAnnex(aTokenCollateral, borrower);
+        distributeSupplierAnnex(aTokenCollateral, liquidator);
 
         return uint(Error.NO_ERROR);
     }
@@ -651,8 +651,8 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
 
         // Keep the flywheel moving
         updateAnnexSupplyIndex(aToken);
-        distributeSupplierAnnex(aToken, src,false);
-        distributeSupplierAnnex(aToken, dst,false);
+        distributeSupplierAnnex(aToken, src);
+        distributeSupplierAnnex(aToken, dst);
 
         return uint(Error.NO_ERROR);
     }
@@ -1168,19 +1168,9 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
     function _become(Unitroller unitroller) public {
         require(msg.sender == unitroller.admin(), "only unitroller admin can");
         require(unitroller._acceptImplementation() == 0, "not authorized");
-        Comptroller(address(unitroller))._upgradeSplitANNRewards();
     }
 
-    function _upgradeSplitANNRewards() public {
-        require(msg.sender == comptrollerImplementation, "only brains can become itself");
 
-        // annexSpeeds -> annexBorrowSpeeds & annexSupplySpeeds
-        for (uint i = 0; i < allMarkets.length; i ++) {
-            address market = address(allMarkets[i]);
-            annexBorrowSpeeds[market] = annexSupplySpeeds[market] = annexSpeeds[market];
-            delete annexSpeeds[market];
-        }
-    }
 
     /**
      * @notice Checks caller is admin, or this contract is becoming the new implementation
@@ -1266,7 +1256,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
      * @param aToken The market in which the supplier is interacting
      * @param supplier The address of the supplier to distribute ANN to
      */
-    function distributeSupplierAnnex(address aToken, address supplier, bool distributeAll) internal {
+      function distributeSupplierAnnex(address aToken, address supplier) internal {
         if (address(xaiVaultAddress) != address(0)) {
             releaseToVault();
         }
@@ -1276,7 +1266,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
         Double memory supplierIndex = Double({mantissa: annexSupplierIndex[aToken][supplier]});
         annexSupplierIndex[aToken][supplier] = supplyIndex.mantissa;
 
-        if (supplierIndex.mantissa == 0 && supplyIndex.mantissa > 0) {
+        if (supplierIndex.mantissa == 0 && supplyIndex.mantissa >= annexInitialIndex) {
             supplierIndex.mantissa = annexInitialIndex;
         }
 
@@ -1284,9 +1274,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
         uint supplierTokens = AToken(aToken).balanceOf(supplier);
         uint supplierDelta = mul_(supplierTokens, deltaIndex);
         uint supplierAccrued = add_(annexAccrued[supplier], supplierDelta);
-        // annexAccrued[supplier] = supplierAccrued;
-        annexAccrued[supplier] = transferAnnex(supplier, supplierAccrued, distributeAll ? 0 : annexClaimThreshold);
-
+        annexAccrued[supplier] = supplierAccrued;
         emit DistributedSupplierAnnex(AToken(aToken), supplier, supplierDelta, supplyIndex.mantissa);
     }
 
@@ -1296,7 +1284,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
      * @param aToken The market in which the borrower is interacting
      * @param borrower The address of the borrower to distribute ANN to
      */
-    function distributeBorrowerAnnex(address aToken, address borrower, Exp memory marketBorrowIndex, bool distributeAll) internal {
+    function distributeBorrowerAnnex(address aToken, address borrower, Exp memory marketBorrowIndex) internal {
         if (address(xaiVaultAddress) != address(0)) {
             releaseToVault();
         }
@@ -1311,8 +1299,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
             uint borrowerAmount = div_(AToken(aToken).borrowBalanceStored(borrower), marketBorrowIndex);
             uint borrowerDelta = mul_(borrowerAmount, deltaIndex);
             uint borrowerAccrued = add_(annexAccrued[borrower], borrowerDelta);
-            // annexAccrued[borrower] = borrowerAccrued;
-            annexAccrued[borrower] = transferAnnex(borrower, borrowerAccrued, distributeAll ? 0 : annexClaimThreshold);
+            annexAccrued[borrower] = borrowerAccrued;
             emit DistributedBorrowerAnnex(AToken(aToken), borrower, borrowerDelta, borrowIndex.mantissa);
         }
     }
@@ -1402,14 +1389,14 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
                 Exp memory borrowIndex = Exp({mantissa: aToken.borrowIndex()});
                 updateAnnexBorrowIndex(address(aToken), borrowIndex);
                 for (j = 0; j < holders.length; j++) {
-                    distributeBorrowerAnnex(address(aToken), holders[j], borrowIndex,true);
+                    distributeBorrowerAnnex(address(aToken), holders[j], borrowIndex);
                     annexAccrued[holders[j]] = grantANNInternal(holders[j], annexAccrued[holders[j]]);
                 }
             }
             if (suppliers) {
                 updateAnnexSupplyIndex(address(aToken));
                 for (j = 0; j < holders.length; j++) {
-                    distributeSupplierAnnex(address(aToken), holders[j],true);
+                    distributeSupplierAnnex(address(aToken), holders[j]);
                     annexAccrued[holders[j]] = grantANNInternal(holders[j], annexAccrued[holders[j]]);
                 }
             }
@@ -1485,13 +1472,17 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
 
     /**
      * @notice Set ANN speed for a single market
-     * @param aToken The market whose ANN speed to update
-     * @param newSupplySpeed New ANN speed for market
-     * @param newBorrowSpeed New ANN speed for market
+     * @param aTokens The market whose ANN speed to update
+     * @param newSupplySpeeds New ANN speed for market
+     * @param newBorrowSpeeds New ANN speed for market
      */
-    function _setAnnexSpeed(AToken aToken, uint newSupplySpeed, uint newBorrowSpeed) public {
+        function _setAnnexSpeeds(AToken[] memory  aTokens, uint[] memory  newSupplySpeeds, uint[] memory newBorrowSpeeds) public {
         require(adminOrInitializing(), "only admin can set annex speed");
-        setAnnexSpeedInternal(aToken, newSupplySpeed, newBorrowSpeed);
+        uint numTokens = aTokens.length;
+        require(numTokens == newSupplySpeeds.length && numTokens == newBorrowSpeeds.length, "Comptroller::_setAnnexSpeeds invalid input");
+        for (uint i = 0; i < numTokens; ++i) {
+            setAnnexSpeedInternal(aTokens[i], newSupplySpeeds[i], newBorrowSpeeds[i]);
+        }
     }
 
     /**

@@ -67,85 +67,79 @@ describe("Flywheel", () => {
     });
   });
 
-  describe('_grantANN()', () => {
-    beforeEach(async () => {
-      await send(comptroller.ann, 'transfer', [comptroller._address, bnbUnsigned(50e18)], {from: root});
-    });
+  // describe('_grantANN()', () => {
+  //   beforeEach(async () => {
+  //     await send(comptroller.ann, 'transfer', [comptroller._address, bnbUnsigned(50e18)], {from: root});
+  //   });
 
-    it('should award ann if called by admin', async () => {
-      const tx = await send(comptroller, '_grantANN', [a1, 100]);
-      expect(tx).toHaveLog('AnnexGranted', {
-        recipient: a1,
-        amount: 100
-      });
-    });
+  //   it('should award ann if called by admin', async () => {
+  //     const tx = await send(comptroller, '_grantANN', [a1, 100]);
+  //     expect(tx).toHaveLog('AnnexGranted', {
+  //       recipient: a1,
+  //       amount: 100
+  //     });
+  //   });
 
-    it('should revert if not called by admin', async () => {
-      await expect(
-        send(comptroller, '_grantANN', [a1, 100], {from: a1})
-      ).rejects.toRevert('revert only admin can grant ann');
-    });
+  //   it('should revert if not called by admin', async () => {
+  //     await expect(
+  //       send(comptroller, '_grantANN', [a1, 100], {from: a1})
+  //     ).rejects.toRevert('revert only admin can grant ann');
+  //   });
 
-    it('should revert if insufficient ann', async () => {
-      await expect(
-        send(comptroller, '_grantANN', [a1, bnbUnsigned(1e20)])
-      ).rejects.toRevert('revert insufficient ann for grant');
-    });
-  });
+  //   it('should revert if insufficient ann', async () => {
+  //     await expect(
+  //       send(comptroller, '_grantANN', [a1, bnbUnsigned(1e20)])
+  //     ).rejects.toRevert('revert insufficient ann for grant');
+  //   });
+  // });
 
 
-  describe("getAnnexMarkets()", () => {
-    it("should return the annex markets", async () => {
-      for (let mkt of [aLOW, aREP, aZRX]) {
-        await send(comptroller, "_setAnnexSpeed", [
-          mkt._address,
-          bnbExp(0.5),
-          bnbExp(0.5),
-        ]);
-      }
-      expect(await call(comptroller, "getAnnexMarkets")).toEqual(
-        [aLOW, aREP, aZRX].map((c) => c._address)
-      );
-    });
-  });
+  // describe("getAnnexMarkets()", () => {
+  //   it("should return the annex markets", async () => {
+  //     for (let mkt of [aLOW, aREP, aZRX]) {
+  //       await send(comptroller, "_setAnnexSpeeds", [
+  //         mkt._address,
+  //         bnbExp(0.5),
+  //         bnbExp(0.5),
+  //       ]);
+  //     }
+  //     expect(await call(comptroller, "getAnnexMarkets")).toEqual(
+  //       [aLOW, aREP, aZRX].map((c) => c._address)
+  //     );
+  //   });
+  // });
 
-  describe("_setAnnexSpeed()", () => {
+  describe("_setAnnexSpeeds()", () => {
     it("should update market index when calling setAnnexSpeed", async () => {
       const mkt = aREP;
       await send(comptroller, "setBlockNumber", [0]);
       await send(mkt, "harnessSetTotalSupply", [bnbUnsigned(10e18)]);
 
-      await send(comptroller, "_setAnnexSpeed", [
-        mkt._address,
-        bnbExp(0.5),
-        bnbExp(0.5),
-      ]);
+      await send(comptroller, '_setAnnexSpeeds', [[mkt._address], [bnbExp(0.5)], [bnbExp(0.5)]]);
       await fastForward(comptroller, 20);
-      await send(comptroller, "_setAnnexSpeed", [
-        mkt._address,
-        bnbExp(1),
-        bnbExp(1),
+      await send(comptroller, "_setAnnexSpeeds", [
+        [mkt._address],
+        [bnbExp(1)],
+        [bnbExp(0.5)],
       ]);
 
-      const { index, block } = await call(comptroller, "annexSupplyState", [
-        mkt._address,
-      ]);
+      const { index, block } = await call(comptroller, "annexSupplyState", [mkt._address]);
       expect(index).toEqualNumber(2e36);
       expect(block).toEqualNumber(20);
     });
 
     it("should correctly drop a ann market if called by admin", async () => {
       for (let mkt of [aLOW, aREP, aZRX]) {
-        await send(comptroller, "_setAnnexSpeed", [
-          mkt._address,
-          bnbExp(0.5),
-          bnbExp(0.5),
+        await send(comptroller, "_setAnnexSpeeds", [
+          [mkt._address],
+          [bnbExp(0.5)],
+          [bnbExp(0.5)],
         ]);
       }
-      const tx = await send(comptroller, "_setAnnexSpeed", [
-        aLOW._address,
-        0,
-        0,
+      const tx = await send(comptroller, "_setAnnexSpeeds", [
+        [aLOW._address],
+        [0],
+        [0],
       ]);
       expect(await call(comptroller, "getAnnexMarkets")).toEqual(
         [aREP, aZRX].map((c) => c._address)
@@ -164,13 +158,13 @@ describe("Flywheel", () => {
 
     it("should correctly drop a ann market from middle of array", async () => {
       for (let mkt of [aLOW, aREP, aZRX]) {
-        await send(comptroller, "_setAnnexSpeed", [
-          mkt._address,
-          bnbExp(0.5),
-          bnbExp(0.5),
+        await send(comptroller, "_setAnnexSpeeds", [
+          [mkt._address],
+          [bnbExp(0.5)],
+          [bnbExp(0.5)],
         ]);
       }
-      await send(comptroller, "_setAnnexSpeed", [aREP._address, 0, 0]);
+      await send(comptroller, "_setAnnexSpeeds", [[aREP._address], [0], [0]]);
       expect(await call(comptroller, "getAnnexMarkets")).toEqual(
         [aLOW, aZRX].map((c) => c._address)
       );
@@ -178,14 +172,14 @@ describe("Flywheel", () => {
 
     it("should not drop a ann market unless called by admin", async () => {
       for (let mkt of [aLOW, aREP, aZRX]) {
-        await send(comptroller, "_setAnnexSpeed", [
-          mkt._address,
-          bnbExp(0.5),
-          bnbExp(0.5),
+        await send(comptroller, "_setAnnexSpeeds", [
+          [mkt._address],
+          [bnbExp(0.5)],
+          [bnbExp(0.5)],
         ]);
       }
       await expect(
-        send(comptroller, "_setAnnexSpeed", [aLOW._address, 0, 0], { from: a1 })
+        send(comptroller, "_setAnnexSpeeds", [[aLOW._address], [0], [0]], { from: a1 })
       ).rejects.toRevert("revert only admin can set annex speed");
     });
 
@@ -203,10 +197,10 @@ describe("Flywheel", () => {
   it("should correctly set differing ANN supply and borrow speeds", async () => {
     const desiredAnnexSupplySpeed = 3;
     const desiredAnnexBorrowSpeed = 20;
-    const tx = await send(comptroller, "_setAnnexSpeed", [
-      aLOW._address,
-      desiredAnnexSupplySpeed,
-      desiredAnnexBorrowSpeed,
+    const tx = await send(comptroller, "_setAnnexSpeeds", [
+      [aLOW._address],
+      [desiredAnnexSupplySpeed],
+      [desiredAnnexBorrowSpeed],
     ]);
     expect(tx).toHaveLog(["AnnexSupplySpeedUpdated", 0], {
       aToken: aLOW._address,
@@ -251,8 +245,8 @@ describe("Flywheel", () => {
     );
 
     // Set ann speeds to 0 while we setup
-    await send(comptroller, "_setAnnexSpeed", [aLOW._address, 0, 0]);
-    await send(comptroller, "_setAnnexSpeed", [aUSD._address, 0, 0]);
+    await send(comptroller, "_setAnnexSpeeds", [[aLOW._address], [0], [0]]);
+    await send(comptroller, "_setAnnexSpeeds", [[aUSD._address], [0], [0]]);
 
     // a2 - supply
     await quickMint(aLOW, a2, mintAmount); // a2 is the supplier
@@ -263,10 +257,10 @@ describe("Flywheel", () => {
     expect(await quickBorrow(aLOW, a1, borrowAmount)).toSucceed(); // a1 is the borrower
 
     // Initialize ann speeds
-    await send(comptroller, "_setAnnexSpeed", [
-      aLOW._address,
-      annexSupplySpeed,
-      annexBorrowSpeed,
+    await send(comptroller, "_setAnnexSpeeds", [
+      [aLOW._address],
+      [annexSupplySpeed],
+      [annexBorrowSpeed],
     ]);
 
     // Get initial ann balances
@@ -327,10 +321,10 @@ describe("Flywheel", () => {
   describe("updateAnnexBorrowIndex()", () => {
     it("should calculate ann borrower index correctly", async () => {
       const mkt = aREP;
-      await send(comptroller, "_setAnnexSpeed", [
-        mkt._address,
-        bnbExp(0.5),
-        bnbExp(0.5),
+      await send(comptroller, "_setAnnexSpeeds", [
+        [mkt._address],
+        [bnbExp(0.5)],
+        [bnbExp(0.5)],
       ]);
       await send(comptroller, "setBlockNumber", [100]);
       await send(mkt, "harnessSetTotalBorrows", [bnbUnsigned(11e18)]);
@@ -385,10 +379,10 @@ describe("Flywheel", () => {
 
     it("should not update index if no blocks passed since last accrual", async () => {
       const mkt = aREP;
-      await send(comptroller, "_setAnnexSpeed", [
-        mkt._address,
-        bnbExp(0.5),
-        bnbExp(0.5),
+      await send(comptroller, "_setAnnexSpeeds", [
+        [mkt._address],
+        [bnbExp(0.5)],
+        [bnbExp(0.5)],
       ]);
       await send(comptroller, "harnessUpdateAnnexBorrowIndex", [
         mkt._address,
@@ -404,16 +398,16 @@ describe("Flywheel", () => {
 
     it("should not update index if annex speed is 0", async () => {
       const mkt = aREP;
-      await send(comptroller, "_setAnnexSpeed", [
-        mkt._address,
-        bnbExp(0.5),
-        bnbExp(0.5),
+      await send(comptroller, "_setAnnexSpeeds", [
+        [mkt._address],
+        [bnbExp(0.5)],
+        [bnbExp(0.5)],
       ]);
       await send(comptroller, "setBlockNumber", [100]);
-      await send(comptroller, "_setAnnexSpeed", [
-        mkt._address,
-        bnbExp(0),
-        bnbExp(0),
+      await send(comptroller, "_setAnnexSpeeds", [
+        [mkt._address],
+        [bnbExp(0)],
+        [bnbExp(0)],
       ]);
       await send(comptroller, "harnessUpdateAnnexBorrowIndex", [
         mkt._address,
@@ -431,10 +425,10 @@ describe("Flywheel", () => {
   describe("updateAnnexSupplyIndex()", () => {
     it("should calculate ann supplier index correctly", async () => {
       const mkt = aREP;
-      await send(comptroller, "_setAnnexSpeed", [
-        mkt._address,
-        bnbExp(0.5),
-        bnbExp(0.5),
+      await send(comptroller, "_setAnnexSpeeds", [
+        [mkt._address],
+        [bnbExp(0.5)],
+        [bnbExp(0.5)],
       ]);
       await send(comptroller, "setBlockNumber", [100]);
       await send(mkt, "harnessSetTotalSupply", [bnbUnsigned(10e18)]);
@@ -483,10 +477,10 @@ describe("Flywheel", () => {
       const mkt = aREP;
       await send(comptroller, "setBlockNumber", [0]);
       await send(mkt, "harnessSetTotalSupply", [bnbUnsigned(10e18)]);
-      await send(comptroller, "_setAnnexSpeed", [
-        mkt._address,
-        bnbExp(0.5),
-        bnbExp(0.5),
+      await send(comptroller, "_setAnnexSpeeds", [
+        [mkt._address],
+        [bnbExp(0.5)],
+        [bnbExp(0.5)],
       ]);
       await send(comptroller, "harnessUpdateAnnexSupplyIndex", [mkt._address]);
 
@@ -497,66 +491,66 @@ describe("Flywheel", () => {
       expect(block).toEqualNumber(0);
     });
 
-    // it("should not matter if the index is updated multiple times", async () => {
-    //   const annexRemaining = annexRate.mul(100);
-    //   // await send(comptroller, "harnessAddAnnexMarkets", [[aLOW._address]]);
-    //   await send(
-    //     comptroller.ann,
-    //     "transfer",
-    //     [comptroller._address, annexRemaining],
-    //     { from: root }
-    //   );
-    //   await pretendBorrow(aLOW, a1, 1, 1, 100);
-    //   await send(comptroller, "harnessRefreshAnnexSpeeds");
+    it("should not matter if the index is updated multiple times", async () => {
+      const annexRemaining = annexRate.mul(100);
+      await send(comptroller, "harnessAddAnnexMarkets", [[aLOW._address]]);
+      await send(
+        comptroller.ann,
+        "transfer",
+        [comptroller._address, annexRemaining],
+        { from: root }
+      );
+      await pretendBorrow(aLOW, a1, 1, 1, 100);
+      await send(comptroller, "harnessRefreshAnnexSpeeds");
 
-    //   await quickMint(aLOW, a2, bnbUnsigned(10e18));
-    //   await quickMint(aLOW, a3, bnbUnsigned(15e18));
+      await quickMint(aLOW, a2, bnbUnsigned(10e18));
+      await quickMint(aLOW, a3, bnbUnsigned(15e18));
 
-    //   const a2Accrued0 = await totalAnnexAccrued(comptroller, a2);
-    //   const a3Accrued0 = await totalAnnexAccrued(comptroller, a3);
-    //   const a2Balance0 = await balanceOf(aLOW, a2);
-    //   const a3Balance0 = await balanceOf(aLOW, a3);
+      const a2Accrued0 = await totalAnnexAccrued(comptroller, a2);
+      const a3Accrued0 = await totalAnnexAccrued(comptroller, a3);
+      const a2Balance0 = await balanceOf(aLOW, a2);
+      const a3Balance0 = await balanceOf(aLOW, a3);
 
-    //   await fastForward(comptroller, 20);
+      await fastForward(comptroller, 20);
 
-    //   const txT1 = await send(
-    //     aLOW,
-    //     "transfer",
-    //     [a2, a3Balance0.sub(a2Balance0)],
-    //     { from: a3 }
-    //   );
+      const txT1 = await send(
+        aLOW,
+        "transfer",
+        [a2, a3Balance0.sub(a2Balance0)],
+        { from: a3 }
+      );
 
-    //   const a2Accrued1 = await totalAnnexAccrued(comptroller, a2);
-    //   const a3Accrued1 = await totalAnnexAccrued(comptroller, a3);
-    //   const a2Balance1 = await balanceOf(aLOW, a2);
-    //   const a3Balance1 = await balanceOf(aLOW, a3);
+      const a2Accrued1 = await totalAnnexAccrued(comptroller, a2);
+      const a3Accrued1 = await totalAnnexAccrued(comptroller, a3);
+      const a2Balance1 = await balanceOf(aLOW, a2);
+      const a3Balance1 = await balanceOf(aLOW, a3);
 
-    //   await fastForward(comptroller, 10);
-    //   await send(comptroller, "harnessUpdateAnnexSupplyIndex", [aLOW._address]);
-    //   await fastForward(comptroller, 10);
+      await fastForward(comptroller, 10);
+      await send(comptroller, "harnessUpdateAnnexSupplyIndex", [aLOW._address]);
+      await fastForward(comptroller, 10);
 
-    //   const txT2 = await send(
-    //     aLOW,
-    //     "transfer",
-    //     [a3, a2Balance1.sub(a3Balance1)],
-    //     { from: a2 }
-    //   );
+      const txT2 = await send(
+        aLOW,
+        "transfer",
+        [a3, a2Balance1.sub(a3Balance1)],
+        { from: a2 }
+      );
 
-    //   const a2Accrued2 = await totalAnnexAccrued(comptroller, a2);
-    //   const a3Accrued2 = await totalAnnexAccrued(comptroller, a3);
+      const a2Accrued2 = await totalAnnexAccrued(comptroller, a2);
+      const a3Accrued2 = await totalAnnexAccrued(comptroller, a3);
 
-    //   expect(a2Accrued0).toEqualNumber(0);
-    //   expect(a3Accrued0).toEqualNumber(0);
-    //   expect(a2Accrued1).not.toEqualNumber(0);
-    //   expect(a3Accrued1).not.toEqualNumber(0);
-    //   expect(a2Accrued1).toEqualNumber(a3Accrued2.sub(a3Accrued1));
-    //   expect(a3Accrued1).toEqualNumber(a2Accrued2.sub(a2Accrued1));
+      expect(a2Accrued0).toEqualNumber(0);
+      expect(a3Accrued0).toEqualNumber(0);
+      expect(a2Accrued1).not.toEqualNumber(0);
+      expect(a3Accrued1).not.toEqualNumber(0);
+      expect(a2Accrued1).toEqualNumber(a3Accrued2.sub(a3Accrued1));
+      expect(a3Accrued1).toEqualNumber(a2Accrued2.sub(a2Accrued1));
 
-    //   expect(txT1.gasUsed).toBeLessThan(200000);
-    //   expect(txT1.gasUsed).toBeGreaterThan(150000);
-    //   expect(txT2.gasUsed).toBeLessThan(200000);
-    //   expect(txT2.gasUsed).toBeGreaterThan(150000);
-    // });
+      expect(txT1.gasUsed).toBeLessThan(220000);
+      expect(txT1.gasUsed).toBeGreaterThan(150000);
+      expect(txT2.gasUsed).toBeLessThan(150000);
+      expect(txT2.gasUsed).toBeGreaterThan(100000);
+    });
   });
 
   describe("distributeBorrowerAnnex()", () => {
@@ -623,8 +617,8 @@ describe("Flywheel", () => {
         a1,
         bnbUnsigned(1.1e18),
       ]);
-      expect(await annexAccrued(comptroller, a1)).toEqualNumber(0);
-      expect(await annBalance(comptroller, a1)).toEqualNumber(25e18);
+      expect(await annexAccrued(comptroller, a1)).toEqualNumber(25e18);
+      expect(await annBalance(comptroller, a1)).toEqualNumber(0);
       expect(tx).toHaveLog("DistributedBorrowerAnnex", {
         aToken: mkt._address,
         borrower: a1,
@@ -912,10 +906,10 @@ describe("Flywheel", () => {
         { from: root }
       );
       await pretendBorrow(aLOW, a1, 1, 1, 100);
-      await send(comptroller, "_setAnnexSpeed", [
-        aLOW._address,
-        bnbExp(0.5),
-        bnbExp(0.5),
+      await send(comptroller, "_setAnnexSpeeds", [
+        [aLOW._address],
+        [bnbExp(0.5)],
+        [bnbExp(0.5)],
       ]);
       await send(comptroller, "harnessRefreshAnnexSpeeds");
       const supplySpeed = await call(comptroller, "annexSupplySpeeds", [
@@ -1274,7 +1268,7 @@ describe("Flywheel", () => {
       await send(comptroller, "setAnnexSupplyState", [mkt, idx, bn0]);
       await send(comptroller, "setAnnexBorrowState", [mkt, idx, bn0]);
       await send(comptroller, "setBlockNumber", [bn1]);
-      await send(comptroller, "_setAnnexSpeed", [mkt, 0, 0]);
+      await send(comptroller, "_setAnnexSpeeds", [[mkt], [0], [0]]);
       await send(comptroller, "harnessAddAnnexMarkets", [[mkt]]);
 
       const supplyState = await call(comptroller, "annexSupplyState", [mkt]);
