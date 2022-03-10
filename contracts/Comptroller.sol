@@ -96,9 +96,6 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
     /// @notice Emitted when treasury percent is changed
     event NewTreasuryPercent(uint oldTreasuryPercent, uint newTreasuryPercent);
 
-    /// @notice The threshold above which the flywheel transfers Annex, in wei
-    uint public constant annexClaimThreshold = 0.001e18;
-
     /// @notice Emitted when Venus is granted by admin
     event AnnexGranted(address recipient, uint amount);
 
@@ -1304,25 +1301,6 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
         }
     }
 
-
-    /**
-     * @notice Transfer Annex to the user, if they are above the threshold
-     * @dev Note: If there is not enough Annex, we do not perform the transfer all.
-     * @param user The address of the user to transfer Annex to
-     * @param userAccrued The amount of Annex to (possibly) transfer
-     * @return The amount of Annex which was NOT transferred to the user
-     */
-     function transferAnnex(address user, uint userAccrued, uint threshold) internal returns (uint) {
-        if (userAccrued >= threshold && userAccrued > 0) {
-            ANN ann = ANN(getANNAddress());
-            uint annexRemaining = ann.balanceOf(address(this));
-            if (userAccrued <= annexRemaining) {
-                ann.transfer(user, userAccrued);
-                return 0;
-            }
-        }
-        return userAccrued;
-    }
 
     /**
      * @notice Calculate ANN accrued by a XAI minter and possibly transfer it to them
