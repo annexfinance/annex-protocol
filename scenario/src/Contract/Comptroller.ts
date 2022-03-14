@@ -47,9 +47,12 @@ interface ComptrollerMethods {
   annexSupplierIndex(market: string, account: string): Callable<string>
   annexBorrowerIndex(market: string, account: string): Callable<string>
   annexSpeeds(string): Callable<string>
+  annexSupplySpeeds(string): Callable<string>
+  annexBorrowSpeeds(string): Callable<string>
   claimAnnex(string): Sendable<void>
+  _grantANN(account: string, encodedNumber): Sendable<void>
   _setAnnexRate(encodedNumber): Sendable<void>
-  _setAnnexSpeed(aToken: string, encodedNumber): Sendable<void>
+  _setAnnexSpeed(aToken: string, newSupplySpeed: encodedNumber, newBorrowSpeed: encodedNumber): Sendable<void>
   mintedXAIs(string): Callable<number>
   _setMarketBorrowCaps(aTokens:string[], borrowCaps:encodedNumber[]): Sendable<void>
   _setBorrowCapGuardian(string): Sendable<void>

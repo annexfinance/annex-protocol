@@ -68,7 +68,7 @@ contract ComptrollerHarness is Comptroller {
         Exp[] memory utilities = new Exp[](allMarkets_.length);
         for (uint i = 0; i < allMarkets_.length; i++) {
             AToken aToken = allMarkets_[i];
-            if (annexSpeeds[address(aToken)] > 0) {
+            if (annexSupplySpeeds[address(aToken)] > 0 || annexBorrowSpeeds[address(aToken)] > 0) {
                 Exp memory assetPrice = Exp({mantissa: oracle.getUnderlyingPrice(aToken)});
                 Exp memory utility = mul_(assetPrice, aToken.totalBorrows());
                 utilities[i] = utility;
@@ -79,7 +79,7 @@ contract ComptrollerHarness is Comptroller {
         for (uint i = 0; i < allMarkets_.length; i++) {
             AToken aToken = allMarkets[i];
             uint newSpeed = totalUtility.mantissa > 0 ? mul_(annexRate, div_(utilities[i], totalUtility)) : 0;
-            setAnnexSpeedInternal(aToken, newSpeed);
+            setAnnexSpeedInternal(aToken, newSpeed, newSpeed);
         }
     }
 
@@ -131,7 +131,7 @@ contract ComptrollerHarness is Comptroller {
     function harnessAddAnnexMarkets(address[] memory aTokens) public {
         for (uint i = 0; i < aTokens.length; i++) {
             // temporarily set annexSpeed to 1 (will be fixed by `harnessRefreshAnnexSpeeds`)
-            setAnnexSpeedInternal(AToken(aTokens[i]), 1);
+            setAnnexSpeedInternal(AToken(aTokens[i]), 1, 1);
         }
     }
 
@@ -156,7 +156,7 @@ contract ComptrollerHarness is Comptroller {
         uint m = allMarkets.length;
         uint n = 0;
         for (uint i = 0; i < m; i++) {
-            if (annexSpeeds[address(allMarkets[i])] > 0) {
+            if (isAnnexMarket(address(allMarkets[i])))  {
                 n++;
             }
         }
@@ -164,11 +164,14 @@ contract ComptrollerHarness is Comptroller {
         address[] memory annexMarkets = new address[](n);
         uint k = 0;
         for (uint i = 0; i < m; i++) {
-            if (annexSpeeds[address(allMarkets[i])] > 0) {
+            if (isAnnexMarket(address(allMarkets[i]))) {
                 annexMarkets[k++] = address(allMarkets[i]);
             }
         }
         return annexMarkets;
+    }
+    function isAnnexMarket(address market) internal view returns (bool) {
+        return annexSupplySpeeds[market] > 0 || annexBorrowSpeeds[market] > 0;
     }
 }
 

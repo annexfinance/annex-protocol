@@ -83,7 +83,7 @@ contract ComptrollerScenario is Comptroller {
         Exp[] memory utilities = new Exp[](allMarkets_.length);
         for (uint i = 0; i < allMarkets_.length; i++) {
             AToken aToken = allMarkets_[i];
-            if (annexSpeeds[address(aToken)] > 0) {
+            if (annexSupplySpeeds[address(aToken)] > 0 || annexBorrowSpeeds[address(aToken)] > 0) {
                 Exp memory assetPrice = Exp({mantissa: oracle.getUnderlyingPrice(aToken)});
                 Exp memory utility = mul_(assetPrice, aToken.totalBorrows());
                 utilities[i] = utility;
@@ -94,7 +94,7 @@ contract ComptrollerScenario is Comptroller {
         for (uint i = 0; i < allMarkets_.length; i++) {
             AToken aToken = allMarkets[i];
             uint newSpeed = totalUtility.mantissa > 0 ? mul_(annexRate, div_(utilities[i], totalUtility)) : 0;
-            setAnnexSpeedInternal(aToken, newSpeed);
+            setAnnexSpeedInternal(aToken, newSpeed,newSpeed);
         }
     }
 }

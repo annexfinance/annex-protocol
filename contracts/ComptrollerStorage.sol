@@ -101,10 +101,12 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
     /// @notice A list of all markets
     AToken[] public allMarkets;
 
-    /// @notice The rate at which the flywheel distributes ANN, per block
+    /// @notice (DEPRECATED) The rate at which the flywheel distributes ANN, per block
+    /// @dev This field is deprecated. annexBorrowSpeeds and annexSupplySpeeds now contain the rates for borrow & supply.
     uint public annexRate;
 
-    /// @notice The portion of annexRate that each market currently receives
+    /// @notice (DEPRECATED) The portion of annexRate that each market currently receives
+    /// @dev This field is deprecated. The contract now uses annexBorrowSpeeds and annexSupplySpeeds.
     mapping(address => uint) public annexSpeeds;
 
     /// @notice The Annex market supply state for each market
@@ -177,4 +179,15 @@ contract ComptrollerV4Storage is ComptrollerV3Storage {
 
     /// @notice Fee percent of accrued interest with decimal 18
     uint256 public treasuryPercent;
+}
+
+contract ComptrollerV5Storage is ComptrollerV4Storage {
+    // The new asymetric speeds will take over the old annexSpeeds.
+    // The old annexSpeeds field will become DEPRECATED following the V4 -> V5 upgrade.
+
+    /// @notice The rate at which ANN is distributed to the corresponding borrow market (per block)
+    mapping(address => uint) public annexBorrowSpeeds;
+
+    /// @notice The rate at which ANN is distributed to the corresponding supply market (per block)
+    mapping(address => uint) public annexSupplySpeeds;
 }
