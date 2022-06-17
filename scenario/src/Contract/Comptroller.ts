@@ -54,6 +54,10 @@ interface ComptrollerMethods {
   _setAnnexRate(encodedNumber): Sendable<void>
   _setAnnexSpeed(aToken: string, newSupplySpeed: encodedNumber, newBorrowSpeed: encodedNumber): Sendable<void>
   mintedXAIs(string): Callable<number>
+  _setMarketSupplyCaps(aTokens:string[], supplyCaps:encodedNumber[]): Sendable<void>
+  _setSupplyCapGuardian(string): Sendable<void>
+  supplyCapGuardian(): Callable<string>
+  supplyCaps(string): Callable<string>
   _setMarketBorrowCaps(aTokens:string[], borrowCaps:encodedNumber[]): Sendable<void>
   _setBorrowCapGuardian(string): Sendable<void>
   borrowCapGuardian(): Callable<string>

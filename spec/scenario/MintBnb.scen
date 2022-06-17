@@ -7,7 +7,7 @@ GasTest "Send Mint 1 aBNB"
     Expect Changes (AToken aBNB UnderlyingBalance Geoff) +0.005e18
     SendMintBnb Geoff 0.005e18 aBNB
     Assert Equal (Bep20 aBNB TokenBalance Geoff) 10e8
-    Assert LastGas LessThan 1.21e5
+    Assert LastGas LessThan 1.3e5
 
 Test "Mint with insufficient bnb balance"
     NewComptroller

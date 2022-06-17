@@ -520,6 +520,30 @@ export function comptrollerFetchers() {
       (world, { comptroller, address }) => mintedXAIs(world, comptroller, address.val),
     ),
     new Fetcher<{comptroller: Comptroller}, AddressA>(`
+        #### SupplyCapGuardian
+        * "SupplyCapGuardian" - Returns the Comptrollers's SupplyCapGuardian
+        * E.g. "Comptroller SupplyCapGuardian"
+        `,
+        "SupplyCapGuardian",
+        [
+          new Arg("comptroller", getComptroller, {implicit: true})
+        ],
+        async (world, {comptroller}) => new AddressA(await comptroller.methods.supplyCapGuardian().call())
+    ),
+    new Fetcher<{comptroller: Comptroller, AToken: AToken}, NumberA>(`
+        #### SupplyCaps
+        * "Comptroller SupplyCaps aZRX
+      `,
+        "SupplyCaps",
+        [
+          new Arg("comptroller", getComptroller, {implicit: true}),
+          new Arg("AToken", getATokenV),
+        ],
+        async (world, {comptroller, AToken}) => {
+          return new NumberA(await comptroller.methods.supplyCaps(AToken._address).call());
+        }
+    ),
+    new Fetcher<{comptroller: Comptroller}, AddressA>(`
         #### BorrowCapGuardian
         * "BorrowCapGuardian" - Returns the Comptrollers's BorrowCapGuardian
         * E.g. "Comptroller BorrowCapGuardian"
