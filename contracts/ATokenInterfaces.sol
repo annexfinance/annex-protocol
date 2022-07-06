@@ -118,7 +118,7 @@ contract ATokenStorage {
      * @notice Share of seized collateral that is added to reserves
      */
     uint public constant protocolSeizeShareMantissa = 5e16; //5%
-    
+
 }
 
 contract ATokenInterface is ATokenStorage {

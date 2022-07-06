@@ -191,3 +191,11 @@ contract ComptrollerV5Storage is ComptrollerV4Storage {
     /// @notice The rate at which ANN is distributed to the corresponding supply market (per block)
     mapping(address => uint) public annexSupplySpeeds;
 }
+
+contract ComptrollerV6Storage is ComptrollerV5Storage {
+    // @notice The supplyCapGuardian can set supplyCaps to any number for any market. Lowering the supply cap could disable supplying to the given market.
+    address public supplyCapGuardian;
+
+    // @notice Supply caps enforced by mintAllowed for each aToken address. Defaults to zero which corresponds to unlimited supplying.
+    mapping(address => uint) public supplyCaps;
+}

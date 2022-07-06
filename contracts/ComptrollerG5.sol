@@ -14,7 +14,7 @@ import "./XAI/XAI.sol";
  * @title Annex's Comptroller Contract
  * @author Annex
  */
-contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, Exponential {
+contract ComptrollerG5 is ComptrollerV5Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
     /// @notice Emitted when an admin supports a market
     event MarketListed(AToken aToken);
 
@@ -86,12 +86,6 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
 
     /// @notice Emitted when borrow cap guardian is changed
     event NewBorrowCapGuardian(address oldBorrowCapGuardian, address newBorrowCapGuardian);
-
-    /// @notice Emitted when supply cap for a aToken is changed
-    event NewSupplyCap(AToken indexed aToken, uint newSupplyCap);
-
-    /// @notice Emitted when supply cap guardian is changed
-    event NewSupplyCapGuardian(address oldSupplyCapGuardian, address newSupplyCapGuardian);
 
     /// @notice Emitted when treasury guardian is changed
     event NewTreasuryGuardian(address oldTreasuryGuardian, address newTreasuryGuardian);
@@ -284,20 +278,6 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
 
         if (!markets[aToken].isListed) {
             return uint(Error.MARKET_NOT_LISTED);
-        }
-
-        uint supplyCap = supplyCaps[aToken];
-        // Supply cap of 0 corresponds to unlimited supplying
-        if (supplyCap != 0) {
-            uint totalCash = AToken(aToken).getCash();
-            uint totalBorrows = AToken(aToken).totalBorrows();
-            uint totalReserves = AToken(aToken).totalReserves();
-            // totalSupplies = totalCash + totalBorrows - totalReserves
-            (MathError mathErr, uint totalSupplies) = addThenSubUInt(totalCash, totalBorrows, totalReserves);
-            require(mathErr == MathError.NO_ERROR, "totalSupplies failed");
-
-            uint nextTotalSupplies = add_(totalSupplies, mintAmount);
-            require(nextTotalSupplies < supplyCap, "market supply cap reached");
         }
 
         // Keep the flywheel moving
@@ -1087,43 +1067,6 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
     }
 
     /**
-     * @notice Admin function to change the Supply Cap Guardian
-     * @param newSupplyCapGuardian The address of the new Supply Cap Guardian
-     */
-    function _setSupplyCapGuardian(address newSupplyCapGuardian) external {
-        require(msg.sender == admin, "only admin can set supply cap guardian");
-
-        // Save current value for inclusion in log
-        address oldSupplyCapGuardian = supplyCapGuardian;
-
-        // Store supplyCapGuardian with value newSupplyCapGuardian
-        supplyCapGuardian = newSupplyCapGuardian;
-
-        // Emit NewSupplyCapGuardian(OldSupplyCapGuardian, NewSupplyCapGuardian)
-        emit NewSupplyCapGuardian(oldSupplyCapGuardian, newSupplyCapGuardian);
-    }
-
-    /**
-      * @notice Set the given supply caps for the given aToken markets. Supplying that brings total supplys to or above supply cap will revert.
-      * @dev Admin or supplyCapGuardian function to set the supply caps. A supply cap of 0 corresponds to unlimited supplying.
-      * @param aTokens The addresses of the markets (tokens) to change the supply caps for
-      * @param newSupplyCaps The new supply cap values in underlying to be set. A value of 0 corresponds to unlimited supplying.
-      */
-    function _setMarketSupplyCaps(AToken[] calldata aTokens, uint[] calldata newSupplyCaps) external {
-        require(msg.sender == admin || msg.sender == supplyCapGuardian, "only admin or supply cap guardian can set supply caps");
-
-        uint numMarkets = aTokens.length;
-        uint numSupplyCaps = newSupplyCaps.length;
-
-        require(numMarkets != 0 && numMarkets == numSupplyCaps, "invalid input");
-
-        for (uint i = 0; i < numMarkets; i++) {
-            supplyCaps[address(aTokens[i])] = newSupplyCaps[i];
-            emit NewSupplyCap(aTokens[i], newSupplyCaps[i]);
-        }
-    }
-
-    /**
       * @notice Set the given borrow caps for the given aToken markets. Borrowing that brings total borrows to or above borrow cap will revert.
       * @dev Admin or borrowCapGuardian function to set the borrow caps. A borrow cap of 0 corresponds to unlimited borrowing.
       * @param aTokens The addresses of the markets (tokens) to change the borrow caps for
@@ -1137,7 +1080,7 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
 
         require(numMarkets != 0 && numMarkets == numBorrowCaps, "invalid input");
 
-        for (uint i = 0; i < numMarkets; i++) {
+        for(uint i = 0; i < numMarkets; i++) {
             borrowCaps[address(aTokens[i])] = newBorrowCaps[i];
             emit NewBorrowCap(aTokens[i], newBorrowCaps[i]);
         }
@@ -1254,6 +1197,7 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
             updateAnnexBorrowIndex(address(aToken), borrowIndex);
             annexBorrowSpeeds[address(aToken)] = newBorrowSpeed;
             emit AnnexBorrowSpeedUpdated(aToken, currentBorrowSpeed, newBorrowSpeed);
+
         }
     }
 
@@ -1308,7 +1252,7 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
      * @param aToken The market in which the supplier is interacting
      * @param supplier The address of the supplier to distribute ANN to
      */
-    function distributeSupplierAnnex(address aToken, address supplier) internal {
+      function distributeSupplierAnnex(address aToken, address supplier) internal {
         if (address(xaiVaultAddress) != address(0)) {
             releaseToVault();
         }
@@ -1355,6 +1299,7 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
             emit DistributedBorrowerAnnex(AToken(aToken), borrower, borrowerDelta, borrowIndex.mantissa);
         }
     }
+
 
     /**
      * @notice Calculate ANN accrued by a XAI minter and possibly transfer it to them
@@ -1405,7 +1350,7 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
      * @param borrowers Whether or not to claim ANN earned by borrowing
      * @param suppliers Whether or not to claim ANN earned by supplying
      */
-    function claimAnnex(address[] memory holders, AToken[] memory aTokens, bool borrowers, bool suppliers) public {
+    function claimAnnex(address[] memory  holders, AToken[] memory aTokens, bool borrowers, bool suppliers) public {
         uint j;
         if(address(xaiController) != address(0)) {
             xaiController.updateAnnexXAIMintIndex();
@@ -1508,7 +1453,7 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
      * @param newSupplySpeeds New ANN speed for market
      * @param newBorrowSpeeds New ANN speed for market
      */
-    function _setAnnexSpeeds(AToken[] memory aTokens, uint[] memory newSupplySpeeds, uint[] memory newBorrowSpeeds) public {
+        function _setAnnexSpeeds(AToken[] memory  aTokens, uint[] memory  newSupplySpeeds, uint[] memory newBorrowSpeeds) public {
         require(adminOrInitializing(), "only admin can set annex speed");
         uint numTokens = aTokens.length;
         require(numTokens == newSupplySpeeds.length && numTokens == newBorrowSpeeds.length, "Comptroller::_setAnnexSpeeds invalid input");
